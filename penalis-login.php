@@ -3,7 +3,7 @@
  * Plugin Name:       Penalis Login
  * Plugin URI:        https://github.com/erlandv/penalis-login
  * Description:       Hides and customizes the default WordPress login URL for enhanced security.
- * Version:           1.0.0
+ * Version:           1.1.0
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            Penalis
@@ -40,7 +40,7 @@ if ( version_compare( PHP_VERSION, '8.1', '<' ) ) {
 // Constants
 // -------------------------------------------------------------------------
 
-define( 'PENALIS_LOGIN_VERSION', '1.0.0' );
+define( 'PENALIS_LOGIN_VERSION', '1.1.0' );
 define( 'PENALIS_LOGIN_FILE', __FILE__ );
 define( 'PENALIS_LOGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PENALIS_LOGIN_URL', plugin_dir_url( __FILE__ ) );

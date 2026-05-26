@@ -4,7 +4,7 @@ Tags: login, security, custom login url, hide login, wp-login
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -46,6 +46,14 @@ Logged-in administrators can always access `/wp-login.php` and `/wp-admin/` dire
 Yes. The plugin does not interfere with WooCommerce's My Account login form or its authentication flows.
 
 == Changelog ==
+
+= 1.1.0 =
+* New: Added configurable guest access behavior for `/wp-admin/` — choose between redirect to custom login URL, redirect to homepage, 404 Not Found (stealth mode), or 403 Forbidden.
+* New: Added "Reset to Defaults" button on the settings page to restore all settings in one click.
+* New: Settings page UI redesigned — Block Behavior now uses horizontal option cards, Guest /wp-admin/ behavior uses a vertical list with descriptions.
+* Fix: REST endpoint (`/wp-json/penalis-login/v1/is-login-slug`) is now registered even when the plugin is disabled, preventing silent failures in Nginx `auth_request` configurations.
+* Fix: Password reset keys are now validated against the database before allowing access to `/wp-login.php`, preventing slug exposure via invalid reset links.
+* Fix: The "delete on uninstall" option is now saved via a dedicated hook instead of inside the sanitize callback, preventing double-write side effects.
 
 = 1.0.0 =
 * Initial release.
