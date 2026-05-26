@@ -1,0 +1,78 @@
+name: Build & Release
+
+# Triggered when a version tag is pushed (e.g. v2.0.0, v2.1.0)
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Build plugin ZIP and create GitHub Release
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write  # required to create releases and upload assets
+    steps:
+      # -----------------------------------------------------------------------
+      # 1. Checkout the tagged commit
+      # -----------------------------------------------------------------------
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # -----------------------------------------------------------------------
+      # 2. Extract version number from the tag (strips the leading "v")
+      #    e.g. tag "v2.0.0" → VERSION="2.0.0"
+      # -----------------------------------------------------------------------
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      # -----------------------------------------------------------------------
+      # 3. Build the distributable ZIP
+      #    Only production files are included — development/repo files excluded.
+      # -----------------------------------------------------------------------
+      - name: Build ZIP
+        run: |
+          PLUGIN_SLUG="penalis-login"
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          ZIP_NAME="${PLUGIN_SLUG}-${VERSION}.zip"
+
+          # Create a clean temp directory with the plugin slug as the folder name.
+          # WordPress requires the zip to contain a single top-level folder that
+          # matches the plugin slug.
+          mkdir -p "/tmp/${PLUGIN_SLUG}"
+
+          # Copy only the files/folders needed at runtime
+          cp penalis-login.php  "/tmp/${PLUGIN_SLUG}/"
+          cp uninstall.php        "/tmp/${PLUGIN_SLUG}/"
+          cp readme.txt           "/tmp/${PLUGIN_SLUG}/"
+          cp LICENSE.txt          "/tmp/${PLUGIN_SLUG}/"
+          cp -r src               "/tmp/${PLUGIN_SLUG}/"
+          cp -r assets            "/tmp/${PLUGIN_SLUG}/"
+
+          # Create the ZIP from the temp directory
+          cd /tmp
+          zip -r "$ZIP_NAME" "${PLUGIN_SLUG}/"
+
+          # Move ZIP back to workspace so the upload step can find it
+          mv "$ZIP_NAME" "$GITHUB_WORKSPACE/"
+
+          echo "ZIP_NAME=$ZIP_NAME" >> "$GITHUB_ENV"
+
+      # -----------------------------------------------------------------------
+      # 4. Create a GitHub Release and attach the ZIP as a release asset
+      # -----------------------------------------------------------------------
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "v${{ steps.version.outputs.VERSION }}"
+          tag_name: ${{ github.ref_name }}
+          body: |
+            ## Penalis Login v${{ steps.version.outputs.VERSION }}
+
+            Download the ZIP below and upload it via **WordPress Admin → Plugins → Add New → Upload Plugin**.
+            
+          files: ${{ env.ZIP_NAME }}
+          draft: false
+          prerelease: false
