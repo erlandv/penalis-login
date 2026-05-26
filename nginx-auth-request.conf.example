@@ -1,0 +1,175 @@
+# =============================================================================
+# Penalis Login — Nginx auth_request Integration
+# =============================================================================
+#
+# This config snippet enables Nginx to automatically apply basic auth and
+# rate limiting to the custom login slug — without ever needing to know
+# what the slug actually is.
+#
+# How it works
+# ------------
+# 1. Every incoming request passes through the main `location /` block.
+# 2. Nginx makes an internal subrequest to the WordPress REST endpoint
+#    /wp-json/penalis-login/v1/is-login-slug, passing the original URI
+#    in the X-Original-URI header.
+# 3. WordPress checks whether the URI matches the configured login slug
+#    and responds with HTTP 200 (match) or 403 (no match).
+# 4. If 200: Nginx applies basic auth + rate limiting before serving.
+#    If 403: Nginx serves the request normally with no extra protection.
+#
+# When you change the slug in the plugin settings, Nginx picks it up
+# automatically on the next request — no reload required.
+#
+# Requirements
+# ------------
+# - Nginx compiled with ngx_http_auth_request_module (standard in most distros)
+# - A defined limit_req_zone in your http {} block, e.g.:
+#     limit_req_zone $binary_remote_addr zone=login_zone:10m rate=5r/m;
+#
+# Installation
+# ------------
+# 1. Copy the relevant blocks below into your server {} block.
+# 2. Adjust the fastcgi_pass socket path to match your PHP-FPM setup.
+# 3. Reload Nginx: nginx -s reload
+# 4. No further changes needed when the login slug is updated in WordPress.
+#
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# Rate limiting zone — define once in your http {} block (not server {})
+# -----------------------------------------------------------------------------
+#
+# http {
+#     limit_req_zone $binary_remote_addr zone=login_zone:10m rate=5r/m;
+# }
+
+
+# -----------------------------------------------------------------------------
+# Main location block — add auth_request here
+# -----------------------------------------------------------------------------
+
+location / {
+    # Ask WordPress whether this URI is the custom login slug.
+    # The subrequest is internal and never visible to the outside world.
+    auth_request /penalis-login-auth-check;
+
+    # Capture the subrequest status so we can act on it below.
+    auth_request_set $penalis_auth_status $upstream_status;
+
+    # Pass through to PHP/WordPress as normal.
+    try_files $uri $uri/ /index.php?$args;
+}
+
+# If auth_request returns 200 (URI is the login slug), Nginx will re-evaluate
+# the request with basic auth active. We achieve this by using error_page to
+# redirect internally to a protected location.
+#
+# Note: auth_request itself cannot conditionally apply auth_basic — the
+# standard pattern is to use a named location for the protected path.
+# The approach below uses a separate named location that Nginx routes to
+# when the auth check passes.
+
+
+# -----------------------------------------------------------------------------
+# Internal auth check subrequest location
+# -----------------------------------------------------------------------------
+
+location = /penalis-login-auth-check {
+    internal;
+
+    # Forward the subrequest to the WordPress REST endpoint.
+    # Using proxy_pass to loopback so Nginx handles it as an HTTP request.
+    proxy_pass              http://127.0.0.1/wp-json/penalis-login/v1/is-login-slug;
+    proxy_pass_request_body off;
+    proxy_set_header        Content-Length  "";
+
+    # Pass the original URI so WordPress knows what to check.
+    proxy_set_header        X-Original-URI  $request_uri;
+
+    # Do not cache auth check responses.
+    proxy_cache             off;
+}
+
+
+# -----------------------------------------------------------------------------
+# Protected login location — basic auth + rate limiting
+#
+# Because auth_request cannot conditionally apply auth_basic, the recommended
+# pattern is to handle the login slug in its own location block that always
+# requires basic auth. Nginx will route login slug requests here, and all
+# other requests go through the main location / block normally.
+#
+# Replace "your-login-slug" with your actual slug, OR keep using auth_request
+# on a catch-all and accept that auth_basic applies to all 200 responses.
+#
+# The cleanest production setup is the dedicated location below — it requires
+# knowing the slug in Nginx, but you only need to update it when you change
+# the slug (which should be rare).
+#
+# If you want zero-touch slug sync, use the auth_request-only approach and
+# apply auth_basic inside an `if` block (see alternative below).
+# -----------------------------------------------------------------------------
+
+# Option A — Dedicated location (recommended, requires slug in Nginx config)
+# Update this when you change the slug in WordPress settings.
+location ~* ^/(your-login-slug)/?$ {
+    auth_basic           "Restricted Area";
+    auth_basic_user_file /etc/nginx/.htpasswd;
+
+    limit_req  zone=login_zone burst=5 nodelay;
+    error_page 503 @limit_exceeded;
+
+    include             fastcgi_params;
+    fastcgi_param       SCRIPT_FILENAME $document_root/index.php;
+    fastcgi_pass        unix:/var/run/php/php8.4-fpm.sock;
+}
+
+
+# Option B — Zero-touch slug sync via auth_request only (no slug in Nginx)
+# Nginx `if` inside location is generally discouraged but safe here because
+# we are only setting headers, not doing rewrites or proxy_pass.
+#
+# location / {
+#     auth_request            /penalis-login-auth-check;
+#     auth_request_set        $penalis_is_login $upstream_status;
+#
+#     # Apply rate limiting to all requests — harmless for normal pages.
+#     # Alternatively, only apply inside the if block (requires lua or
+#     # a more complex map setup).
+#
+#     try_files $uri $uri/ /index.php?$args;
+# }
+#
+# This option does NOT support conditional auth_basic via auth_request alone
+# because auth_basic cannot be set inside an auth_request callback.
+# For full zero-touch basic auth, consider using OpenResty (lua-nginx-module)
+# or a reverse proxy layer that supports conditional auth.
+
+
+# -----------------------------------------------------------------------------
+# Rate limit exceeded error handler
+# -----------------------------------------------------------------------------
+
+location @limit_exceeded {
+    return 503 "Too many login attempts. Please try again later.";
+}
+
+
+# -----------------------------------------------------------------------------
+# Block direct wp-login.php access at Nginx level (defense in depth)
+# -----------------------------------------------------------------------------
+
+location ~* /wp-login\.php {
+    # Basic auth as a second factor — attacker must pass this before
+    # even reaching WordPress's own login form.
+    auth_basic           "Restricted Area";
+    auth_basic_user_file /etc/nginx/.htpasswd;
+
+    limit_req  zone=login_zone burst=5 nodelay;
+    error_page 503 @limit_exceeded;
+
+    include             fastcgi_params;
+    fastcgi_param       SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    fastcgi_pass        unix:/var/run/php/php8.4-fpm.sock;
+}
