@@ -120,7 +120,7 @@ final class LoginSlugEndpoint {
 		}
 
 		// Strip query string and normalise slashes.
-		$path = strtok( (string) $original_uri, '?' );
+		$path = explode( '?', (string) $original_uri, 2 )[0];
 		$path = '/' . trim( (string) $path, '/' );
 
 		// Extract the first path segment.

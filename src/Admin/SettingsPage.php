@@ -48,6 +48,13 @@ final class SettingsPage {
 		add_action( 'admin_init', [ $this, 'registerSettings' ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueueAssets' ] );
 
+		// Persist the "delete on uninstall" flag as a separate option whenever
+		// the main settings are saved. This is done outside the sanitize
+		// callback to avoid side effects from WordPress calling sanitize
+		// more than once per request.
+		add_action( 'update_option_' . Helpers::OPTION_KEY, [ $this, 'syncDeleteOnUninstallOption' ], 10, 2 );
+		add_action( 'add_option_' . Helpers::OPTION_KEY, [ $this, 'syncDeleteOnUninstallOptionOnAdd' ], 10, 2 );
+
 		// Add a "Settings" link on the Plugins list page for quick access.
 		add_filter(
 			'plugin_action_links_' . PENALIS_LOGIN_BASENAME,
@@ -215,12 +222,13 @@ final class SettingsPage {
 			: '404';
 
 		// ---- Delete on uninstall -------------------------------------------
-		// Stored as a separate option (not inside the main settings array) so
-		// uninstall.php can read it with a single get_option() call without
-		// needing to load the plugin's class autoloader.
-
+		// The actual update_option() call is handled by syncDeleteOnUninstallOption()
+		// via the update_option_ hook, to avoid side effects from WordPress
+		// calling this sanitize callback more than once per request.
+		// We still read the submitted value here so it can be passed along
+		// via a transient for the hook to pick up.
 		$delete_on_uninstall = isset( $input['delete_on_uninstall'] ) && '1' === (string) $input['delete_on_uninstall'];
-		update_option( Helpers::DELETE_ON_UNINSTALL_KEY, $delete_on_uninstall, false );
+		set_transient( 'penalis_login_pending_delete_flag', $delete_on_uninstall ? '1' : '0', 60 );
 
 		// Invalidate the in-memory settings cache so the new values are used
 		// immediately within this request.
@@ -279,7 +287,7 @@ final class SettingsPage {
 		if ( '' === $slug ) {
 			return sprintf(
 				/* translators: %s: the default fallback slug */
-				esc_html__( 'The login slug cannot be empty. The previous slug has been kept.', 'penalis-login' ),
+				esc_html__( 'The login slug cannot be empty. Falling back to the default slug "%s". The previous slug has been kept.', 'penalis-login' ),
 				esc_html( Helpers::DEFAULT_SLUG )
 			);
 		}
@@ -655,6 +663,42 @@ final class SettingsPage {
 		array_unshift( $links, $settings_link );
 
 		return $links;
+	}
+
+	// -------------------------------------------------------------------------
+	// Delete-on-uninstall sync
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Syncs the "delete on uninstall" flag to its own option after the main
+	 * settings option is updated.
+	 *
+	 * Hooked to update_option_{option_name} so it runs exactly once per save,
+	 * avoiding the double-execution risk of doing it inside sanitizeSettings().
+	 *
+	 * @param  mixed $old_value Previous option value (unused).
+	 * @param  mixed $new_value New option value (unused — we read the transient).
+	 * @return void
+	 */
+	public function syncDeleteOnUninstallOption( mixed $old_value, mixed $new_value ): void {
+		$pending = get_transient( 'penalis_login_pending_delete_flag' );
+
+		if ( false !== $pending ) {
+			delete_transient( 'penalis_login_pending_delete_flag' );
+			update_option( Helpers::DELETE_ON_UNINSTALL_KEY, '1' === $pending, false );
+		}
+	}
+
+	/**
+	 * Same as syncDeleteOnUninstallOption() but fires on add_option_ for the
+	 * very first save (when the option doesn't exist yet).
+	 *
+	 * @param  string $option Option name (unused).
+	 * @param  mixed  $value  Option value (unused).
+	 * @return void
+	 */
+	public function syncDeleteOnUninstallOptionOnAdd( string $option, mixed $value ): void {
+		$this->syncDeleteOnUninstallOption( null, null );
 	}
 
 	// -------------------------------------------------------------------------

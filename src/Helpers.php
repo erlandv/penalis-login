@@ -236,7 +236,7 @@ final class Helpers {
 		// phpcs:enable
 
 		// Normalise to path only (strip query string).
-		$path = strtok( (string) $uri, '?' );
+		$path = explode( '?', (string) $uri, 2 )[0];
 
 		return str_contains( (string) $self, 'wp-login.php' )
 			|| str_contains( (string) $path, 'wp-login.php' );

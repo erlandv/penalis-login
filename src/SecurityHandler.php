@@ -115,9 +115,14 @@ final class SecurityHandler {
 		 *
 		 * - postpass       : Password-protected post access.
 		 * - logout         : Logout nonce verification (handled by WP core).
-		 * - rp / resetpass : Password reset links sent via email.
 		 * - confirm_admin_email : Admin email confirmation prompt.
 		 * - confirmaction  : GDPR personal data export/erasure confirmation.
+		 *
+		 * Note: 'rp' and 'resetpass' are intentionally NOT listed here.
+		 * Password reset links carry a ?key= parameter that we validate
+		 * against the database in the block below. Allowing them here
+		 * (without key validation) would let an attacker pass ?action=rp
+		 * without a valid key and still reach wp-login.php.
 		 *
 		 * Note: We do NOT allow 'login' here because that is the default
 		 * action and would defeat the purpose of the plugin.
@@ -125,8 +130,6 @@ final class SecurityHandler {
 		$allowed_actions = [
 			'postpass',
 			'logout',
-			'rp',
-			'resetpass',
 			'confirm_admin_email',
 			'confirmaction',
 		];
@@ -209,13 +212,16 @@ final class SecurityHandler {
 		switch ( $behavior ) {
 			case '403':
 				$this->send403();
+				break;
 
 			case 'redirect_home':
 				$this->redirectHome();
+				break;
 
 			case '404':
 			default:
 				$this->send404();
+				break;
 		}
 	}
 

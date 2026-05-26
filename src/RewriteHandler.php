@@ -136,10 +136,6 @@ final class RewriteHandler {
 		global $wp_query;
 		$wp_query->is_404 = false;
 
-		// Pass through any query string parameters (action, redirect_to, etc.)
-		// that WordPress login expects.
-		$this->passQueryStringToLogin();
-
 		// Include wp-login.php directly. WordPress will handle the rest.
 		// We set WPINC so the include works from any directory context.
 		$login_file = ABSPATH . 'wp-login.php';
@@ -149,22 +145,6 @@ final class RewriteHandler {
 			require_once $login_file;
 			exit;
 		}
-	}
-
-	/**
-	 * Ensures query string parameters from the custom URL are available to
-	 * wp-login.php exactly as if the request had been made to wp-login.php
-	 * directly.
-	 *
-	 * @return void
-	 */
-	private function passQueryStringToLogin(): void {
-		// $_GET is already populated by PHP from the query string.
-		// We only need to ensure $_SERVER['REQUEST_URI'] doesn't confuse
-		// wp-login.php's self-referencing URL generation.
-		//
-		// wp-login.php uses site_url('wp-login.php') for form actions, which
-		// goes through our UrlFilter, so no manipulation is needed here.
 	}
 
 	// -------------------------------------------------------------------------

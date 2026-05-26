@@ -56,8 +56,8 @@ final class Plugin {
 	// Services
 	// -------------------------------------------------------------------------
 
-	/** @var Helpers Shared helper utilities. */
-	private Helpers $helpers;
+	/** @var Helpers|null Shared helper utilities. */
+	private ?Helpers $helpers = null;
 
 	/** @var RewriteHandler Rewrite rule manager. */
 	private RewriteHandler $rewriteHandler;
@@ -109,6 +109,14 @@ final class Plugin {
 			$this->settingsPage->register();
 		}
 
+		// REST endpoint — answers Nginx auth_request subrequests so Nginx
+		// always knows the current login slug without manual config updates.
+		// Registered unconditionally (even when the plugin is disabled) so
+		// Nginx auth_request configs don't silently break when the plugin is
+		// toggled off. The endpoint is passive and only responds when called.
+		$this->loginSlugEndpoint = new LoginSlugEndpoint( $this->helpers );
+		$this->loginSlugEndpoint->register();
+
 		if ( ! $this->helpers->isPluginEnabled() ) {
 			return;
 		}
@@ -124,13 +132,6 @@ final class Plugin {
 		// Security handler — blocks direct access to wp-login.php.
 		$this->securityHandler = new SecurityHandler( $this->helpers );
 		$this->securityHandler->register();
-
-		// REST endpoint — answers Nginx auth_request subrequests so Nginx
-		// always knows the current login slug without manual config updates.
-		// Safe to register even when Nginx integration is not in use — the
-		// endpoint is passive and only responds when called.
-		$this->loginSlugEndpoint = new LoginSlugEndpoint( $this->helpers );
-		$this->loginSlugEndpoint->register();
 	}
 
 	// -------------------------------------------------------------------------
@@ -141,8 +142,13 @@ final class Plugin {
 	 * Returns the Helpers instance.
 	 *
 	 * @return Helpers
+	 * @throws \LogicException If called before boot() has been run.
 	 */
 	public function getHelpers(): Helpers {
+		if ( null === $this->helpers ) {
+			throw new \LogicException( 'Plugin::getHelpers() called before boot(). Call Plugin::getInstance()->boot() first.' );
+		}
+
 		return $this->helpers;
 	}
 }
