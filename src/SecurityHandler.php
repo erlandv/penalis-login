@@ -145,12 +145,53 @@ final class SecurityHandler {
 
 		// Allow password reset requests that carry a reset key in the URL.
 		// These are sent via email and must work regardless of the login slug.
+		//
+		// Security note: We validate that the key + login pair actually exists
+		// in the database before allowing the request through. An invalid or
+		// fabricated key must NOT be allowed to pass — doing so would let an
+		// attacker probe wp-login.php and trigger WP's own error redirects,
+		// which would expose the custom login slug via the wp_redirect filter.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['key'] ) && '' !== $_GET['key'] ) {
-			return true;
+			return $this->isValidPasswordResetKey();
 		}
 
 		return false;
+	}
+
+	// -------------------------------------------------------------------------
+	// Password reset key validation
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Returns whether the current request carries a valid password reset key.
+	 *
+	 * WordPress password reset links have the form:
+	 *   /wp-login.php?action=rp&key=<key>&login=<login>
+	 *
+	 * We validate the key + login pair against the database before allowing
+	 * the request through. This prevents an attacker from passing an arbitrary
+	 * ?key= value to bypass the block and then triggering WP's own error
+	 * redirect, which would expose the custom login slug.
+	 *
+	 * Note: check_password_reset_key() is available after 'init' fires, which
+	 * is exactly when blockWpLogin() runs, so the call is safe here.
+	 *
+	 * @return bool True only when the key + login pair is valid in the DB.
+	 */
+	private function isValidPasswordResetKey(): bool {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
+		$key   = isset( $_GET['key'] )   ? sanitize_text_field( wp_unslash( $_GET['key'] ) )   : '';
+		$login = isset( $_GET['login'] ) ? sanitize_user( wp_unslash( $_GET['login'] ) )        : '';
+		// phpcs:enable
+
+		if ( '' === $key || '' === $login ) {
+			return false;
+		}
+
+		$user = check_password_reset_key( $key, $login );
+
+		return ( $user instanceof \WP_User );
 	}
 
 	// -------------------------------------------------------------------------

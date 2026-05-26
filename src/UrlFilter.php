@@ -200,21 +200,37 @@ final class UrlFilter {
 	}
 
 	/**
-	 * Intercepts wp_redirect() calls to prevent redirect loops.
+	 * Intercepts wp_redirect() calls to prevent redirect loops and slug exposure.
 	 *
 	 * If WordPress tries to redirect to wp-login.php (e.g. after a failed
 	 * auth check), we redirect to the custom login URL instead.
+	 *
+	 * Important: We must NOT rewrite redirects that originate from a direct
+	 * request to wp-login.php itself. When an attacker hits wp-login.php
+	 * directly (e.g. with an invalid ?key=), WordPress issues an internal
+	 * redirect back to wp-login.php with an error query string. Rewriting
+	 * that redirect would expose the custom login slug in the Location header.
+	 *
+	 * We only rewrite redirects that originate from within the custom login
+	 * slug flow (i.e. the current request is NOT a direct wp-login.php hit).
 	 *
 	 * @param  string $location The redirect URL.
 	 * @param  int    $status   HTTP status code.
 	 * @return string
 	 */
 	public function filterRedirect( string $location, int $status ): string {
-		if ( str_contains( $location, 'wp-login.php' ) ) {
-			return $this->replaceWpLoginInUrl( $location );
+		if ( ! str_contains( $location, 'wp-login.php' ) ) {
+			return $location;
 		}
 
-		return $location;
+		// If the current request is a direct wp-login.php hit, do not rewrite
+		// the redirect — the SecurityHandler will have already blocked or is
+		// about to block the request. Rewriting here would leak the slug.
+		if ( $this->helpers->isWpLoginRequest() ) {
+			return $location;
+		}
+
+		return $this->replaceWpLoginInUrl( $location );
 	}
 
 	/**
