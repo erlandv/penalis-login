@@ -1,0 +1,181 @@
+/**
+ * Penalis Login — Admin Settings Page Styles
+ *
+ * Minimal, purposeful styles that complement the WordPress admin UI
+ * without overriding core styles.
+ */
+
+/* -------------------------------------------------------------------------
+   Page header
+   ---------------------------------------------------------------------- */
+
+/*
+ * The <h1> sits OUTSIDE the flex header row on purpose.
+ * WordPress injects .wp-header-end right after the first <h1> in .wrap
+ * and then appends all admin notices after that sentinel. If <h1> were
+ * inside a flex container the notices would appear beside the heading.
+ * Keeping <h1> before the flex row avoids that entirely.
+ */
+.penalis-login-settings .penalis-login-title {
+	display: inline-flex;
+	align-items: center;
+	margin: 0 0 4px;
+	padding: 0;
+	font-size: 23px;
+	font-weight: 400;
+	color: #1d2327;
+}
+
+/* -------------------------------------------------------------------------
+   Notice container
+   ---------------------------------------------------------------------- */
+
+#penalis-login-notices {
+	margin-bottom: 8px;
+}
+
+#penalis-login-notices .notice,
+#penalis-login-notices .updated,
+#penalis-login-notices .error,
+#penalis-login-notices .settings-error {
+	margin-left: 0;
+	margin-right: 0;
+}
+
+/* -------------------------------------------------------------------------
+   Custom save notice
+   ---------------------------------------------------------------------- */
+
+#penalis-login-notices .notice-success {
+	border-left-color: #00a32a;
+	padding: 12px 16px;
+}
+
+#penalis-login-notices .notice-success p {
+	margin: 0;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 14px;
+}
+
+.penalis-notice-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 18px;
+	height: 18px;
+	background: #00a32a;
+	color: #fff;
+	border-radius: 50%;
+	font-size: 13px;
+	font-weight: 700;
+	flex-shrink: 0;
+}
+
+/* -------------------------------------------------------------------------
+   Two-column body layout
+   ---------------------------------------------------------------------- */
+
+.penalis-login-body {
+	display: flex;
+	align-items: flex-start;
+	gap: 24px;
+	margin-top: 8px;
+}
+
+/* Main column: settings form — grows to fill available space */
+.penalis-login-main {
+	flex: 1 1 0;
+	min-width: 0; /* prevent flex blowout on narrow screens */
+}
+
+/* Sidebar column: fixed width, sticks to top when scrolling */
+.penalis-login-sidebar {
+	flex: 0 0 450px;
+	width: 450px;
+	top: 32px; /* clears the WP admin bar */
+}
+
+/* Collapse to single column on narrow viewports (folded menu breakpoint) */
+@media screen and (max-width: 960px) {
+	.penalis-login-body {
+		flex-direction: column;
+	}
+
+	.penalis-login-sidebar {
+		flex: 1 1 auto;
+		width: 100%;
+		position: static;
+	}
+}
+
+/* -------------------------------------------------------------------------
+   Status indicators
+   ---------------------------------------------------------------------- */
+
+.penalis-status-active {
+	color: #00a32a;
+	font-weight: 600;
+}
+
+.penalis-status-inactive {
+	color: #d63638;
+	font-weight: 600;
+}
+
+/* -------------------------------------------------------------------------
+   Sidebar info box
+   ---------------------------------------------------------------------- */
+
+.penalis-login-info-box {
+	padding: 16px 20px;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.penalis-login-info-box h3 {
+	margin-top: 0;
+	margin-bottom: 12px;
+	font-size: 13px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: #1d2327;
+}
+
+/* Make the status table fill the sidebar box cleanly */
+.penalis-login-info-box .widefat {
+	border: none;
+	box-shadow: none;
+}
+
+.penalis-login-info-box .widefat td {
+	padding: 8px 6px;
+	font-size: 13px;
+	vertical-align: top;
+}
+
+.penalis-login-info-box .widefat td:first-child {
+	white-space: nowrap;
+	color: #50575e;
+	width: 40%;
+}
+
+.penalis-login-info-box .widefat td a {
+	word-break: break-all;
+}
+
+/* -------------------------------------------------------------------------
+   Form fields
+   ---------------------------------------------------------------------- */
+
+.penalis-login-settings .form-table th {
+	width: 200px;
+}
+
+.penalis-login-settings .form-table td p.description {
+	margin-top: 6px;
+}
