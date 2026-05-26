@@ -60,6 +60,7 @@ final class SecurityHandler {
 	 */
 	public function register(): void {
 		add_action( 'init', [ $this, 'blockWpLogin' ], 1 );
+		add_action( 'init', [ $this, 'blockWpAdminForGuests' ], 1 );
 	}
 
 	// -------------------------------------------------------------------------
@@ -93,6 +94,79 @@ final class SecurityHandler {
 
 		// Enforce the configured blocking behavior.
 		$this->enforceBlockBehavior();
+	}
+
+	/**
+	 * Blocks or redirects guest access to /wp-admin/ based on the configured
+	 * wp_admin_guest_behavior setting.
+	 *
+	 * WordPress's default behavior is to redirect unauthenticated /wp-admin/
+	 * requests to wp-login.php (via auth_redirect). Our UrlFilter then rewrites
+	 * that to the custom login URL — which exposes the slug to anyone watching
+	 * the network tab or Location header.
+	 *
+	 * This method intercepts the request before WordPress's own redirect fires,
+	 * giving the admin full control over what guests see.
+	 *
+	 * Anti-lockout: logged-in administrators are always allowed through,
+	 * identical to the wp-login.php protection above.
+	 *
+	 * @return void
+	 */
+	public function blockWpAdminForGuests(): void {
+		if ( ! $this->helpers->isWpAdminRequest() ) {
+			return;
+		}
+
+		// Already logged in — let WordPress handle it normally.
+		if ( is_user_logged_in() ) {
+			return;
+		}
+
+		// Anti-lockout: administrators can always get through even if their
+		// session just expired and they need to re-authenticate.
+		// (is_user_logged_in() already covers this, but kept explicit for clarity.)
+
+		$this->enforceWpAdminGuestBehavior();
+	}
+
+	/**
+	 * Enforces the configured wp-admin guest behavior and terminates the request.
+	 *
+	 * @return never
+	 */
+	private function enforceWpAdminGuestBehavior(): never {
+		$behavior = $this->helpers->getWpAdminGuestBehavior();
+
+		switch ( $behavior ) {
+			case '403':
+				$this->send403();
+				break;
+
+			case '404':
+				$this->send404();
+				break;
+
+			case 'redirect_home':
+				$this->redirectHome();
+				break;
+
+			case 'redirect_login':
+			default:
+				// Redirect to the custom login URL, preserving the original
+				// destination so the user lands back here after logging in.
+				// phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+				$requested_url = isset( $_SERVER['REQUEST_URI'] )
+					? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) )
+					: admin_url();
+
+				nocache_headers();
+				wp_safe_redirect(
+					$this->helpers->getCustomLoginUrl( $requested_url ),
+					302
+				);
+				exit;
+		}
 	}
 
 	// -------------------------------------------------------------------------

@@ -142,8 +142,16 @@ final class SettingsPage {
 
 		add_settings_field(
 			'penalis_login_block_behavior',
-			__( 'Block Behavior', 'penalis-login' ),
+			__( 'When /wp-login.php is accessed', 'penalis-login' ),
 			[ $this, 'renderBlockBehaviorField' ],
+			self::PAGE_SLUG,
+			'penalis_login_security'
+		);
+
+		add_settings_field(
+			'penalis_login_wp_admin_guest_behavior',
+			__( 'When /wp-admin/ is accessed while logged out', 'penalis-login' ),
+			[ $this, 'renderWpAdminGuestBehaviorField' ],
 			self::PAGE_SLUG,
 			'penalis_login_security'
 		);
@@ -220,6 +228,14 @@ final class SettingsPage {
 		$output['block_behavior'] = in_array( $raw_behavior, $allowed_behaviors, true )
 			? $raw_behavior
 			: '404';
+
+		// ---- wp-admin guest behavior ---------------------------------------
+
+		$allowed_wp_admin_behaviors      = [ 'redirect_login', 'redirect_home', '404', '403' ];
+		$raw_wp_admin_behavior           = isset( $input['wp_admin_guest_behavior'] ) ? (string) $input['wp_admin_guest_behavior'] : 'redirect_login';
+		$output['wp_admin_guest_behavior'] = in_array( $raw_wp_admin_behavior, $allowed_wp_admin_behaviors, true )
+			? $raw_wp_admin_behavior
+			: 'redirect_login';
 
 		// ---- Delete on uninstall -------------------------------------------
 		// The actual update_option() call is handled by syncDeleteOnUninstallOption()
@@ -375,7 +391,7 @@ final class SettingsPage {
 	 */
 	public function renderSecuritySectionDescription(): void {
 		echo '<p>'
-			. esc_html__( 'Configure how the plugin responds when someone tries to access the default WordPress login URL directly.', 'penalis-login' )
+			. esc_html__( 'Control what happens when someone tries to access the default WordPress login or admin URLs directly. These settings help prevent bots and attackers from finding your login page.', 'penalis-login' )
 			. '</p>';
 	}
 
@@ -472,6 +488,7 @@ final class SettingsPage {
 		];
 
 		foreach ( $options as $value => $label ) {
+			$value = (string) $value; // Cast to string — PHP auto-casts numeric keys ('404', '403') to int.
 			?>
 			<label style="display:block; margin-bottom:6px;">
 				<input
@@ -490,7 +507,73 @@ final class SettingsPage {
 			<?php esc_html_e( 'This setting controls what happens when someone visits /wp-login.php directly.', 'penalis-login' ); ?>
 			<br />
 			<strong><?php esc_html_e( 'Note:', 'penalis-login' ); ?></strong>
-			<?php esc_html_e( 'Logged-in administrators can always access /wp-login.php directly as a safety measure.', 'penalis-login' ); ?>
+			<?php esc_html_e( 'Your own access is never affected — logged-in administrators can always reach /wp-login.php normally.', 'penalis-login' ); ?>
+		</p>
+		<?php
+	}
+
+	/**
+	 * Renders the "Guest Access to /wp-admin/" radio field.
+	 *
+	 * Controls what happens when a non-logged-in visitor hits /wp-admin/.
+	 * WordPress's default is to redirect to the login page, but that exposes
+	 * the custom login slug. This field lets the admin choose a safer behavior.
+	 *
+	 * @return void
+	 */
+	public function renderWpAdminGuestBehaviorField(): void {
+		$current = $this->helpers->getWpAdminGuestBehavior();
+
+		$options = [
+			'redirect_login' => [
+				'label' => __( 'Redirect to custom login URL (default)', 'penalis-login' ),
+				'note'  => __( 'Your custom login URL will be exposed to anyone who visits /wp-admin/ while logged out — including bots and scanners.', 'penalis-login' ),
+				'warn'  => true,
+			],
+			'redirect_home'  => [
+				'label' => __( 'Redirect to homepage', 'penalis-login' ),
+				'note'  => __( 'Silently redirects visitors to the homepage. Does not reveal the login URL.', 'penalis-login' ),
+				'warn'  => false,
+			],
+			'404'            => [
+				'label' => __( 'Show 404 Not Found — Stealth Mode', 'penalis-login' ),
+				'note'  => __( 'Makes /wp-admin/ completely invisible to bots and scanners. Best choice for maximum protection.', 'penalis-login' ),
+				'warn'  => false,
+			],
+			'403'            => [
+				'label' => __( 'Show 403 Forbidden', 'penalis-login' ),
+				'note'  => __( 'Explicitly denies access. Signals that a protected area exists, but does not reveal the login URL.', 'penalis-login' ),
+				'warn'  => false,
+			],
+		];
+
+		foreach ( $options as $value => $option ) {
+			$value = (string) $value; // Cast to string — PHP auto-casts numeric keys ('404', '403') to int.
+			?>
+			<label style="display:block; margin-bottom:4px;">
+				<input
+					type="radio"
+					name="<?php echo esc_attr( Helpers::OPTION_KEY ); ?>[wp_admin_guest_behavior]"
+					value="<?php echo esc_attr( $value ); ?>"
+					<?php checked( $current, $value ); ?>
+				/>
+				<?php echo esc_html( $option['label'] ); ?>
+			</label>
+			<?php if ( ! empty( $option['note'] ) ) : ?>
+				<p class="description" style="margin: 2px 0 10px 24px;">
+					<?php if ( $option['warn'] ) : ?>
+						<span style="color:#d63638;">&#9888; </span>
+					<?php endif; ?>
+					<?php echo esc_html( $option['note'] ); ?>
+				</p>
+			<?php endif; ?>
+			<?php
+		}
+
+		?>
+		<p class="description" style="margin-top:8px;">
+			<strong><?php esc_html_e( 'Note:', 'penalis-login' ); ?></strong>
+			<?php esc_html_e( 'Your own access is never affected — logged-in users always reach /wp-admin/ normally regardless of this setting.', 'penalis-login' ); ?>
 		</p>
 		<?php
 	}
@@ -603,6 +686,10 @@ final class SettingsPage {
 								<tr>
 									<td><strong><?php esc_html_e( 'Block Behavior', 'penalis-login' ); ?></strong></td>
 									<td><?php echo esc_html( $this->getBlockBehaviorLabel() ); ?></td>
+								</tr>
+								<tr>
+									<td><strong><?php esc_html_e( 'Guest /wp-admin/', 'penalis-login' ); ?></strong></td>
+									<td><?php echo esc_html( $this->getWpAdminGuestBehaviorLabel() ); ?></td>
 								</tr>
 								<tr>
 									<td><strong><?php esc_html_e( 'Version', 'penalis-login' ); ?></strong></td>
@@ -718,5 +805,21 @@ final class SettingsPage {
 		];
 
 		return $labels[ $this->helpers->getBlockBehavior() ] ?? __( '404 Not Found', 'penalis-login' );
+	}
+
+	/**
+	 * Returns a human-readable label for the current wp-admin guest behavior setting.
+	 *
+	 * @return string
+	 */
+	private function getWpAdminGuestBehaviorLabel(): string {
+		$labels = [
+			'redirect_login' => __( 'Redirect to login', 'penalis-login' ),
+			'redirect_home'  => __( 'Redirect to homepage', 'penalis-login' ),
+			'404'            => __( '404 Not Found (Stealth)', 'penalis-login' ),
+			'403'            => __( '403 Forbidden', 'penalis-login' ),
+		];
+
+		return $labels[ $this->helpers->getWpAdminGuestBehavior() ] ?? __( 'Redirect to login', 'penalis-login' );
 	}
 }

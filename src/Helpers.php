@@ -120,6 +120,58 @@ final class Helpers {
 		return in_array( $behavior, $allowed, true ) ? $behavior : '404';
 	}
 
+	/**
+	 * Returns the behavior when a guest (non-logged-in user) accesses /wp-admin/.
+	 *
+	 * Possible values:
+	 *  - 'redirect_login' : Redirect to the custom login URL (WordPress default
+	 *                        behavior, but exposes the login slug).
+	 *  - 'redirect_home'  : Redirect to the site homepage silently.
+	 *  - '404'            : Return a 404 Not Found response (stealth mode).
+	 *  - '403'            : Return a 403 Forbidden response.
+	 *
+	 * Defaults to 'redirect_login' for safe out-of-the-box compatibility.
+	 *
+	 * @return string
+	 */
+	public function getWpAdminGuestBehavior(): string {
+		$settings = $this->getSettings();
+		$behavior = $settings['wp_admin_guest_behavior'] ?? 'redirect_login';
+
+		$allowed = [ 'redirect_login', 'redirect_home', '404', '403' ];
+
+		return in_array( $behavior, $allowed, true ) ? $behavior : 'redirect_login';
+	}
+
+	/**
+	 * Determines whether the current request is for the /wp-admin/ directory
+	 * (but NOT an admin-ajax.php or REST API request).
+	 *
+	 * @return bool
+	 */
+	public function isWpAdminRequest(): bool {
+		// phpcs:disable WordPress.Security.ValidatedSanitizedInput
+		$uri = isset( $_SERVER['REQUEST_URI'] )
+			? wp_unslash( $_SERVER['REQUEST_URI'] )
+			: '';
+		// phpcs:enable
+
+		$path = explode( '?', (string) $uri, 2 )[0];
+
+		// Must start with /wp-admin/ (or be exactly /wp-admin).
+		if ( ! preg_match( '#^/wp-admin(/|$)#i', $path ) ) {
+			return false;
+		}
+
+		// Exclude admin-ajax.php — it is used by front-end code and must
+		// never be blocked.
+		if ( str_contains( $path, 'admin-ajax.php' ) ) {
+			return false;
+		}
+
+		return true;
+	}
+
 	// -------------------------------------------------------------------------
 	// Slug utilities
 	// -------------------------------------------------------------------------
