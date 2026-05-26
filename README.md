@@ -4,16 +4,33 @@ A WordPress plugin that replaces the default WordPress login URL (`/wp-login.php
 
 This plugin was originally developed for internal use at [Penalis](https://penalis.com). It is publicly available so others can use it in their own projects if they find it useful.
 
-![Penalis Login](.github/screenshots/penalis-login-settings.png)
+<div align="center">
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src=".github/screenshots/01-penalis-login-settings.png" loading="lazy" alt="Penalis Login Settings">
+      <p align="center"><em>Penalis Login Settings</em></p>
+    </td>
+    <td width="50%">
+      <img src=".github/screenshots/02-penalis-login-settings.png" loading="lazy" alt="Penalis Login Settings">
+      <p align="center"><em>Penalis Login Settings</em></p>
+    </td>
+  </tr>
+</table>
+
+</div>
 
 ## Features
 
 - Replaces `/wp-login.php` with a custom login slug (default: `/login/`)
 - Blocks direct access to `/wp-login.php` with configurable behavior (404, 403, or redirect)
+- Configurable guest access behavior for `/wp-admin/` — redirect to login, redirect to homepage, 404, or 403
 - Filters all WordPress-generated login/logout/lost-password/register URLs
-- Anti-lockout: logged-in administrators can always access `/wp-login.php` directly
+- Anti-lockout: logged-in administrators can always access `/wp-login.php` and `/wp-admin/` directly
 - Compatible with WooCommerce, REST API, XML-RPC, admin-ajax, and application passwords
 - Settings page under **Settings → Penalis Login**
+- Reset to Defaults button to restore all settings in one click
 - Rewrite rules flushed only on activation/deactivation or slug change (not on every request)
 - Optional Nginx integration via a REST endpoint for automatic slug-aware rate limiting and basic auth
 
@@ -57,14 +74,26 @@ penalis-login/
 |---|---|---|
 | Enable Plugin | Toggle the custom login URL on/off | Enabled |
 | Custom Login Slug | The URL slug for the login page | `login` |
-| Block Behavior | What happens when `/wp-login.php` is accessed directly | 404 |
+| When /wp-login.php is accessed | What happens when `/wp-login.php` is accessed directly | 404 Not Found |
+| When /wp-admin/ is accessed while logged out | What happens when a guest visits `/wp-admin/` | Redirect to login |
 | Delete Plugin Data | Delete all plugin data from the database when the plugin is uninstalled | Disabled |
 
-### Block Behavior Options
+### Block Behavior Options (When /wp-login.php is accessed)
 
 - **404 Not Found** *(recommended)* — Returns a proper 404 using the theme's 404 template. Does not reveal that a login page exists.
 - **403 Forbidden** — Returns a 403 response via `wp_die()`.
 - **Redirect to homepage** — Redirects the visitor to the site homepage with a 302.
+
+### Guest /wp-admin/ Behavior Options
+
+Controls what happens when a non-logged-in visitor accesses `/wp-admin/`. WordPress's default behavior is to redirect to the login page, but this exposes the custom login slug in the browser's address bar and HTTP `Location` header.
+
+- **Redirect to custom login URL** *(default)* — Matches standard WordPress behavior. The custom login URL will be visible to anyone who visits `/wp-admin/` while logged out, including bots and scanners.
+- **Redirect to homepage** — Silently redirects visitors to the homepage. Does not reveal the login URL.
+- **Show 404 Not Found** — Stealth mode. Makes `/wp-admin/` completely invisible to bots and scanners. Best choice for maximum protection.
+- **Show 403 Forbidden** — Explicitly denies access. Signals that a protected area exists, but does not reveal the login URL.
+
+Logged-in users are always allowed through to `/wp-admin/` regardless of this setting.
 
 ### Slug Validation
 
@@ -93,7 +122,7 @@ Redirecting to `wp-login.php` would expose the native URL in the browser's addre
 
 ### Anti-lockout mechanism
 
-If a logged-in administrator visits `/wp-login.php` directly, the plugin allows access unconditionally. This is the last line of defence against a misconfigured slug permanently locking out the site owner.
+If a logged-in administrator visits `/wp-login.php` or `/wp-admin/` directly, the plugin allows access unconditionally regardless of the configured block/guest behavior settings. This is the last line of defence against a misconfigured slug permanently locking out the site owner.
 
 ## Nginx Integration
 
@@ -110,7 +139,7 @@ Nginx passes the original request URI in the `X-Original-URI` header. The endpoi
 
 When the slug is changed in the plugin settings, Nginx picks it up automatically on the next request — no Nginx reload required.
 
-See `nginx-auth-request.conf.example` in the plugin root for a ready-to-use configuration snippet.
+See [nginx-auth-request.conf.example](./nginx-auth-request.conf.example) for a ready-to-use configuration snippet.
 
 ## Compatibility
 
@@ -127,6 +156,10 @@ See `nginx-auth-request.conf.example` in the plugin root for a ready-to-use conf
 | Multisite | ✗ (single-site only) |
 
 ## Edge Cases
+
+### What if I forget my custom login slug?
+
+Logged-in administrators can always access `/wp-login.php` and `/wp-admin/` directly regardless of plugin settings. If you are completely locked out, deactivate the plugin via FTP by renaming the plugin folder in `/wp-content/plugins/`.
 
 ### Slug conflicts with existing pages/posts
 

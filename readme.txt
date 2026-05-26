@@ -12,16 +12,18 @@ Hides and customizes the default WordPress login URL for enhanced security.
 
 == Description ==
 
-Penalis Login replaces the default WordPress login URL (`/wp-login.php`) with a custom slug of your choice. Direct access to `/wp-login.php` is blocked with a configurable response (404, 403, or redirect).
+Penalis Login replaces the default WordPress login URL (`/wp-login.php`) with a custom slug of your choice. Direct access to `/wp-login.php` is blocked with a configurable response (404, 403, or redirect). Guest access to `/wp-admin/` is also configurable — by default it redirects to the custom login URL, but can be set to return 404, 403, or redirect to the homepage instead.
 
 **Features:**
 
 * Custom login slug (default: `/login/`)
-* Blocks direct access to `/wp-login.php`
+* Blocks direct access to `/wp-login.php` with configurable behavior (404, 403, or redirect)
+* Configurable guest access behavior for `/wp-admin/` (redirect to login, redirect to homepage, 404, or 403)
 * Filters all WordPress-generated login/logout/lost-password/register URLs
-* Anti-lockout: logged-in administrators can always access `/wp-login.php`
+* Anti-lockout: logged-in administrators can always access `/wp-login.php` and `/wp-admin/` directly
 * Compatible with WooCommerce, REST API, XML-RPC, and admin-ajax
 * Settings page under Settings → Penalis Login
+* Reset to Defaults button to restore all settings in one click
 
 == Installation ==
 
@@ -37,7 +39,7 @@ No. The plugin uses WordPress's native rewrite rules and includes `wp-login.php`
 
 = What if I forget my custom login slug? =
 
-Logged-in administrators can always access `/wp-login.php` directly. If you are locked out, deactivate the plugin via FTP by renaming the plugin folder.
+Logged-in administrators can always access `/wp-login.php` and `/wp-admin/` directly regardless of plugin settings. If you are locked out, deactivate the plugin via FTP by renaming the plugin folder.
 
 = Is this compatible with WooCommerce? =
 
