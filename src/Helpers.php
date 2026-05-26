@@ -45,6 +45,23 @@ final class Helpers {
 	// -------------------------------------------------------------------------
 
 	/**
+	 * Returns the default settings array.
+	 *
+	 * Single source of truth for defaults — used by Activator on first
+	 * activation and by SettingsPage when resetting to defaults.
+	 *
+	 * @return array<string,mixed>
+	 */
+	public static function getDefaultSettings(): array {
+		return [
+			'enabled'                 => true,
+			'login_slug'              => self::DEFAULT_SLUG,
+			'block_behavior'          => '404',
+			'wp_admin_guest_behavior' => 'redirect_login',
+		];
+	}
+
+	/**
 	 * Returns the full settings array, loading from the database once per request.
 	 *
 	 * @return array<string,mixed>

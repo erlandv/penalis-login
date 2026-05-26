@@ -34,14 +34,7 @@ final class Activator {
 	public static function activate(): void {
 		// Seed default settings on first activation only.
 		if ( false === get_option( Helpers::OPTION_KEY ) ) {
-			$defaults = [
-				'enabled'                 => true,
-				'login_slug'              => Helpers::DEFAULT_SLUG,
-				'block_behavior'          => '404',
-				'wp_admin_guest_behavior' => 'redirect_login',
-			];
-
-			add_option( Helpers::OPTION_KEY, $defaults, '', false );
+			add_option( Helpers::OPTION_KEY, Helpers::getDefaultSettings(), '', false );
 		}
 
 		// Register the rewrite rule so it exists before flushing.

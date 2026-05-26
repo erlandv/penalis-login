@@ -179,3 +179,322 @@
 .penalis-login-settings .form-table td p.description {
 	margin-top: 6px;
 }
+
+/* -------------------------------------------------------------------------
+   Security field: shared label column override
+   The security fields use a custom layout that overrides the default
+   form-table th width so the label column can hold a description + note box.
+   ---------------------------------------------------------------------- */
+
+.penalis-login-settings .form-table .penalis-field-label-cell {
+	vertical-align: top;
+	padding-top: 15px;
+	width: 220px;
+}
+
+.penalis-field-label-cell .penalis-field-title {
+	font-weight: 600;
+	font-size: 13px;
+	color: #1d2327;
+	display: block;
+	margin-bottom: 6px;
+}
+
+.penalis-field-label-cell .penalis-field-desc {
+	font-size: 12px;
+	color: #646970;
+	line-height: 1.5;
+	margin-bottom: 10px;
+}
+
+/* Info note box (blue tint) — used for anti-lockout notice */
+.penalis-field-note {
+	display: flex;
+	gap: 7px;
+	align-items: flex-start;
+	background: #f0f6fc;
+	border: 1px solid #c5d9ed;
+	border-radius: 4px;
+	padding: 8px 10px;
+	font-size: 12px;
+	color: #2271b1;
+	line-height: 1.5;
+}
+
+.penalis-field-note-icon {
+	flex-shrink: 0;
+	font-size: 13px;
+	line-height: 1.4;
+}
+
+/* -------------------------------------------------------------------------
+   Behavior cards — horizontal grid (Block Behavior / wp-login.php)
+   3 cards side by side, each with a radio, title, badge, and description.
+   ---------------------------------------------------------------------- */
+
+.penalis-behavior-cards {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 10px;
+}
+
+/* Hide native radio — keyboard + screen-reader accessible via label[for] */
+.penalis-behavior-cards input[type="radio"] {
+	position: absolute;
+	opacity: 0;
+	width: 0;
+	height: 0;
+	pointer-events: none;
+}
+
+.penalis-behavior-card {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 14px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 6px;
+	cursor: pointer;
+	transition: border-color 0.12s ease, box-shadow 0.12s ease;
+	user-select: none;
+	margin: 0;
+}
+
+.penalis-behavior-card:hover {
+	border-color: #2271b1;
+}
+
+.penalis-behavior-cards input[type="radio"]:checked + .penalis-behavior-card {
+	border-color: #2271b1;
+	box-shadow: 0 0 0 1px #2271b1;
+}
+
+.penalis-behavior-cards input[type="radio"]:focus-visible + .penalis-behavior-card {
+	outline: 2px solid #2271b1;
+	outline-offset: 2px;
+}
+
+/* Radio dot row */
+.penalis-behavior-card-radio {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.penalis-behavior-card-dot {
+	width: 16px;
+	height: 16px;
+	border: 1px solid #c3c4c7;
+	border-radius: 50%;
+	background: #fff;
+	flex-shrink: 0;
+	transition: border-color 0.12s ease;
+	position: relative;
+}
+
+.penalis-behavior-cards input[type="radio"]:checked + .penalis-behavior-card .penalis-behavior-card-dot {
+	border-color: #2271b1;
+	background: #2271b1;
+	box-shadow: inset 0 0 0 3px #fff;
+}
+
+/* Title + badge row */
+.penalis-behavior-card-title {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 6px;
+	font-size: 13px;
+	font-weight: 600;
+	color: #1d2327;
+	line-height: 1.3;
+}
+
+/* Description text */
+.penalis-behavior-card-desc {
+	font-size: 12px;
+	color: #646970;
+	line-height: 1.5;
+	flex: 1;
+}
+
+/* Collapse to 1 column on narrow screens */
+@media screen and (max-width: 960px) {
+	.penalis-behavior-cards {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* -------------------------------------------------------------------------
+   Behavior list rows — vertical list (Guest /wp-admin/ behavior)
+   Each row: radio dot | title + badge | description
+   ---------------------------------------------------------------------- */
+
+.penalis-behavior-list {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	max-width: 680px;
+}
+
+/* Hide native radio */
+.penalis-behavior-list input[type="radio"] {
+	position: absolute;
+	opacity: 0;
+	width: 0;
+	height: 0;
+	pointer-events: none;
+}
+
+.penalis-behavior-row {
+	display: grid;
+	grid-template-columns: 20px 1fr auto;
+	align-items: center;
+	gap: 10px 12px;
+	padding: 12px 14px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 6px;
+	cursor: pointer;
+	transition: border-color 0.12s ease, box-shadow 0.12s ease;
+	user-select: none;
+	margin: 0;
+}
+
+.penalis-behavior-row:hover {
+	border-color: #2271b1;
+}
+
+.penalis-behavior-list input[type="radio"]:checked + .penalis-behavior-row {
+	border-color: #2271b1;
+	box-shadow: 0 0 0 1px #2271b1;
+	background: #f8fbff;
+}
+
+.penalis-behavior-list input[type="radio"]:focus-visible + .penalis-behavior-row {
+	outline: 2px solid #2271b1;
+	outline-offset: 2px;
+}
+
+/* Radio dot */
+.penalis-behavior-row-dot {
+	width: 16px;
+	height: 16px;
+	border: 1px solid #c3c4c7;
+	border-radius: 50%;
+	background: #fff;
+	flex-shrink: 0;
+	transition: border-color 0.12s ease;
+}
+
+.penalis-behavior-list input[type="radio"]:checked + .penalis-behavior-row .penalis-behavior-row-dot {
+	border-color: #2271b1;
+	background: #2271b1;
+	box-shadow: inset 0 0 0 3px #fff;
+}
+
+/* Title */
+.penalis-behavior-row-title {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	font-size: 13px;
+	font-weight: 600;
+	color: #1d2327;
+	line-height: 1.3;
+}
+
+/* Description — spans full width on second row */
+.penalis-behavior-row-desc {
+	grid-column: 2 / 4;
+	font-size: 12px;
+	color: #646970;
+	line-height: 1.5;
+	margin-top: -4px;
+}
+
+/* Warning text inside a row */
+.penalis-behavior-row-warn {
+	grid-column: 2 / 4;
+	display: flex;
+	align-items: flex-start;
+	gap: 5px;
+	font-size: 12px;
+	color: #996800;
+	line-height: 1.5;
+	margin-top: -4px;
+}
+
+/* Warning row tint when selected */
+.penalis-behavior-list input[type="radio"]:checked + .penalis-behavior-row.is-warning {
+	border-color: #dba617;
+	box-shadow: 0 0 0 1px #dba617;
+	background: #fefbf0;
+}
+
+.penalis-behavior-list input[type="radio"]:checked + .penalis-behavior-row.is-warning .penalis-behavior-row-dot {
+	border-color: #dba617;
+	background: #dba617;
+	box-shadow: inset 0 0 0 3px #fff;
+}
+
+/* -------------------------------------------------------------------------
+   Shared badge styles
+   ---------------------------------------------------------------------- */
+
+.penalis-badge {
+	display: inline-block;
+	padding: 1px 8px;
+	font-size: 11px;
+	font-weight: 500;
+	border-radius: 10px;
+	line-height: 1.7;
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+
+.penalis-badge-recommended {
+	background: #edfaef;
+	color: #00a32a;
+	border: 1px solid #b8e6bf;
+}
+
+.penalis-badge-stealth {
+	background: #f0f0f1;
+	color: #3c434a;
+	border: 1px solid #c3c4c7;
+}
+
+.penalis-badge-default {
+	background: #f0f6fc;
+	color: #2271b1;
+	border: 1px solid #c5d9ed;
+}
+
+/* -------------------------------------------------------------------------
+   Form action buttons row
+   ---------------------------------------------------------------------- */
+
+.penalis-form-actions {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-top: 8px;
+}
+
+/* Override WP's default submit button margin so it sits flush in the flex row */
+.penalis-form-actions .button-primary {
+	margin: 0;
+	float: none;
+}
+
+.penalis-reset-button {
+	color: #646970;
+	border-color: #c3c4c7;
+}
+
+.penalis-reset-button:hover {
+	color: #d63638;
+	border-color: #d63638;
+}

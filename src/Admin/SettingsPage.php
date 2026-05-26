@@ -145,7 +145,8 @@ final class SettingsPage {
 			__( 'When /wp-login.php is accessed', 'penalis-login' ),
 			[ $this, 'renderBlockBehaviorField' ],
 			self::PAGE_SLUG,
-			'penalis_login_security'
+			'penalis_login_security',
+			[ 'label_for' => '' ] // Prevent WP from wrapping the th content in a <label>.
 		);
 
 		add_settings_field(
@@ -153,7 +154,8 @@ final class SettingsPage {
 			__( 'When /wp-admin/ is accessed while logged out', 'penalis-login' ),
 			[ $this, 'renderWpAdminGuestBehaviorField' ],
 			self::PAGE_SLUG,
-			'penalis_login_security'
+			'penalis_login_security',
+			[ 'label_for' => '' ] // Prevent WP from wrapping the th content in a <label>.
 		);
 
 		// ---- Uninstall section ----------------------------------------------
@@ -184,6 +186,9 @@ final class SettingsPage {
 	 * This is the single point of truth for input validation. All values
 	 * are explicitly cast and validated — we never trust raw user input.
 	 *
+	 * If the hidden field '_reset' is present and set to '1', all settings
+	 * are reset to their defaults instead of reading the submitted values.
+	 *
 	 * Slug validation order:
 	 *  1. Normalize (sanitize_title).
 	 *  2. Reject if empty → fall back to current saved slug.
@@ -195,6 +200,34 @@ final class SettingsPage {
 	 * @return array<string,mixed> Sanitized settings array.
 	 */
 	public function sanitizeSettings( mixed $input ): array {
+
+		// ---- Reset to defaults ---------------------------------------------
+		// The "Reset to Defaults" button submits the form with _reset=1.
+		// We return the defaults immediately, bypassing all other validation.
+		if ( isset( $input['_reset'] ) && '1' === (string) $input['_reset'] ) {
+			// Also reset the separate delete-on-uninstall option.
+			update_option( Helpers::DELETE_ON_UNINSTALL_KEY, false, false );
+
+			$this->helpers->invalidateCache();
+			set_transient( 'penalis_login_flush_rules', true, 60 );
+
+			$existing_reset = wp_list_filter( get_settings_errors(), [ 'code' => 'settings-reset' ] );
+			if ( empty( $existing_reset ) ) {
+				add_settings_error(
+					Helpers::OPTION_KEY,
+					'settings-reset',
+					sprintf(
+						'<span class="penalis-notice-icon">&#10003;</span> <strong>%s</strong> %s',
+						esc_html__( 'Settings reset.', 'penalis-login' ),
+						esc_html__( 'All settings have been restored to their defaults.', 'penalis-login' )
+					),
+					'success'
+				);
+			}
+
+			return Helpers::getDefaultSettings();
+		}
+
 		$output = [];
 
 		// Enabled flag.
@@ -474,7 +507,10 @@ final class SettingsPage {
 	}
 
 	/**
-	 * Renders the "Block Behavior" radio field.
+	 * Renders the "When /wp-login.php is accessed" horizontal behavior cards.
+	 *
+	 * Three cards side by side — compact layout because there are only 3 options
+	 * and descriptions are short enough to fit inside a card.
 	 *
 	 * @return void
 	 */
@@ -482,42 +518,64 @@ final class SettingsPage {
 		$current = $this->helpers->getBlockBehavior();
 
 		$options = [
-			'404'           => __( 'Return 404 Not Found (recommended — does not reveal a login page exists)', 'penalis-login' ),
-			'403'           => __( 'Return 403 Forbidden', 'penalis-login' ),
-			'redirect_home' => __( 'Redirect to homepage', 'penalis-login' ),
+			'404' => [
+				'label' => __( 'Return 404 Not Found', 'penalis-login' ),
+				'badge' => null,
+				'desc'  => __( 'Recommended. Does not reveal that a login page exists. Best for security and preventing bots from discovering your site.', 'penalis-login' ),
+			],
+			'403' => [
+				'label' => __( 'Return 403 Forbidden', 'penalis-login' ),
+				'badge' => null,
+				'desc'  => __( 'Explicitly denies access. Signals that a protected area exists, but does not reveal the login URL.', 'penalis-login' ),
+			],
+			'redirect_home' => [
+				'label' => __( 'Redirect to homepage', 'penalis-login' ),
+				'badge' => null,
+				'desc'  => __( 'Redirects visitors to your homepage. May reveal that your site is protected, but not the login URL.', 'penalis-login' ),
+			],
 		];
-
-		foreach ( $options as $value => $label ) {
-			$value = (string) $value; // Cast to string — PHP auto-casts numeric keys ('404', '403') to int.
-			?>
-			<label style="display:block; margin-bottom:6px;">
+		?>
+		<div class="penalis-behavior-cards" role="group" aria-label="<?php esc_attr_e( 'Block behavior for wp-login.php', 'penalis-login' ); ?>">
+			<?php foreach ( $options as $value => $option ) : ?>
+				<?php
+				$value = (string) $value;
+				$id    = 'penalis_block_' . $value;
+				?>
 				<input
 					type="radio"
+					id="<?php echo esc_attr( $id ); ?>"
 					name="<?php echo esc_attr( Helpers::OPTION_KEY ); ?>[block_behavior]"
 					value="<?php echo esc_attr( $value ); ?>"
 					<?php checked( $current, $value ); ?>
 				/>
-				<?php echo esc_html( $label ); ?>
-			</label>
-			<?php
-		}
+				<label for="<?php echo esc_attr( $id ); ?>" class="penalis-behavior-card">
+					<span class="penalis-behavior-card-radio">
+						<span class="penalis-behavior-card-dot" aria-hidden="true"></span>
+					</span>
+					<span class="penalis-behavior-card-title">
+						<?php echo esc_html( $option['label'] ); ?>
+						<?php if ( 'recommended' === $option['badge'] ) : ?>
+							<span class="penalis-badge penalis-badge-recommended"><?php esc_html_e( 'Recommended', 'penalis-login' ); ?></span>
+						<?php endif; ?>
+					</span>
+					<span class="penalis-behavior-card-desc">
+						<?php echo esc_html( $option['desc'] ); ?>
+					</span>
+				</label>
+			<?php endforeach; ?>
+		</div>
 
-		?>
-		<p class="description">
-			<?php esc_html_e( 'This setting controls what happens when someone visits /wp-login.php directly.', 'penalis-login' ); ?>
-			<br />
-			<strong><?php esc_html_e( 'Note:', 'penalis-login' ); ?></strong>
-			<?php esc_html_e( 'Your own access is never affected — logged-in administrators can always reach /wp-login.php normally.', 'penalis-login' ); ?>
-		</p>
+		<div class="penalis-field-note" style="margin-top:10px; max-width:680px;">
+			<span><?php esc_html_e( 'Your own access is never affected — logged-in administrators can always reach /wp-login.php normally.', 'penalis-login' ); ?></span>
+		</div>
 		<?php
 	}
 
 	/**
-	 * Renders the "Guest Access to /wp-admin/" radio field.
+	 * Renders the "When /wp-admin/ is accessed while logged out" vertical behavior list.
 	 *
-	 * Controls what happens when a non-logged-in visitor hits /wp-admin/.
-	 * WordPress's default is to redirect to the login page, but that exposes
-	 * the custom login slug. This field lets the admin choose a safer behavior.
+	 * Each row shows a radio dot, title with optional badge, and a description.
+	 * The warning row gets an amber tint when selected.
 	 *
 	 * @return void
 	 */
@@ -526,55 +584,80 @@ final class SettingsPage {
 
 		$options = [
 			'redirect_login' => [
-				'label' => __( 'Redirect to custom login URL (default)', 'penalis-login' ),
-				'note'  => __( 'Your custom login URL will be exposed to anyone who visits /wp-admin/ while logged out — including bots and scanners.', 'penalis-login' ),
-				'warn'  => true,
+				'label'   => __( 'Redirect to custom login URL', 'penalis-login' ),
+				'badge'   => null,
+				'desc'    => null,
+				'warn'    => __( 'This will expose your login URL to anyone who visits /wp-admin/ while logged out.', 'penalis-login' ),
+				'warning' => true,
 			],
-			'redirect_home'  => [
-				'label' => __( 'Redirect to homepage', 'penalis-login' ),
-				'note'  => __( 'Silently redirects visitors to the homepage. Does not reveal the login URL.', 'penalis-login' ),
-				'warn'  => false,
+			'redirect_home' => [
+				'label'   => __( 'Redirect to homepage', 'penalis-login' ),
+				'badge'   => null,
+				'desc'    => __( 'Silently redirects visitors to the homepage. Does not reveal the login URL.', 'penalis-login' ),
+				'warn'    => null,
+				'warning' => false,
 			],
-			'404'            => [
-				'label' => __( 'Show 404 Not Found — Stealth Mode', 'penalis-login' ),
-				'note'  => __( 'Makes /wp-admin/ completely invisible to bots and scanners. Best choice for maximum protection.', 'penalis-login' ),
-				'warn'  => false,
+			'404' => [
+				'label'   => __( 'Show 404 Not Found', 'penalis-login' ),
+				'badge'   => null,
+				'desc'    => __( 'Stealth mode. Makes /wp-admin/ completely invisible to bots and scanners.', 'penalis-login' ),
+				'warn'    => null,
+				'warning' => false,
 			],
-			'403'            => [
-				'label' => __( 'Show 403 Forbidden', 'penalis-login' ),
-				'note'  => __( 'Explicitly denies access. Signals that a protected area exists, but does not reveal the login URL.', 'penalis-login' ),
-				'warn'  => false,
+			'403' => [
+				'label'   => __( 'Show 403 Forbidden', 'penalis-login' ),
+				'badge'   => null,
+				'desc'    => __( 'Explicitly denies access. Signals that a protected area exists, but does not reveal the login URL.', 'penalis-login' ),
+				'warn'    => null,
+				'warning' => false,
 			],
 		];
-
-		foreach ( $options as $value => $option ) {
-			$value = (string) $value; // Cast to string — PHP auto-casts numeric keys ('404', '403') to int.
-			?>
-			<label style="display:block; margin-bottom:4px;">
+		?>
+		<div class="penalis-behavior-list" role="group" aria-label="<?php esc_attr_e( 'Guest behavior for wp-admin', 'penalis-login' ); ?>">
+			<?php foreach ( $options as $value => $option ) : ?>
+				<?php
+				$value      = (string) $value;
+				$id         = 'penalis_wp_admin_' . $value;
+				$row_class  = 'penalis-behavior-row' . ( $option['warning'] ? ' is-warning' : '' );
+				?>
 				<input
 					type="radio"
+					id="<?php echo esc_attr( $id ); ?>"
 					name="<?php echo esc_attr( Helpers::OPTION_KEY ); ?>[wp_admin_guest_behavior]"
 					value="<?php echo esc_attr( $value ); ?>"
 					<?php checked( $current, $value ); ?>
 				/>
-				<?php echo esc_html( $option['label'] ); ?>
-			</label>
-			<?php if ( ! empty( $option['note'] ) ) : ?>
-				<p class="description" style="margin: 2px 0 10px 24px;">
-					<?php if ( $option['warn'] ) : ?>
-						<span style="color:#d63638;">&#9888; </span>
-					<?php endif; ?>
-					<?php echo esc_html( $option['note'] ); ?>
-				</p>
-			<?php endif; ?>
-			<?php
-		}
+				<label for="<?php echo esc_attr( $id ); ?>" class="<?php echo esc_attr( $row_class ); ?>">
+					<span class="penalis-behavior-row-dot" aria-hidden="true"></span>
 
-		?>
-		<p class="description" style="margin-top:8px;">
-			<strong><?php esc_html_e( 'Note:', 'penalis-login' ); ?></strong>
-			<?php esc_html_e( 'Your own access is never affected — logged-in users always reach /wp-admin/ normally regardless of this setting.', 'penalis-login' ); ?>
-		</p>
+					<span class="penalis-behavior-row-title">
+						<?php echo esc_html( $option['label'] ); ?>
+						<?php if ( 'default' === $option['badge'] ) : ?>
+							<span class="penalis-badge penalis-badge-default"><?php esc_html_e( 'Default', 'penalis-login' ); ?></span>
+						<?php elseif ( 'stealth' === $option['badge'] ) : ?>
+							<span class="penalis-badge penalis-badge-stealth"><?php esc_html_e( 'Stealth Mode', 'penalis-login' ); ?></span>
+						<?php endif; ?>
+					</span>
+
+					<?php if ( ! empty( $option['desc'] ) ) : ?>
+						<span class="penalis-behavior-row-desc">
+							<?php echo esc_html( $option['desc'] ); ?>
+						</span>
+					<?php endif; ?>
+
+					<?php if ( ! empty( $option['warn'] ) ) : ?>
+						<span class="penalis-behavior-row-warn">
+							<span aria-hidden="true">&#9888;</span>
+							<?php echo esc_html( $option['warn'] ); ?>
+						</span>
+					<?php endif; ?>
+				</label>
+			<?php endforeach; ?>
+		</div>
+
+		<div class="penalis-field-note" style="margin-top:10px; max-width:680px;">
+			<span><?php esc_html_e( 'Your own access is never affected — logged-in users always reach /wp-admin/ normally regardless of this setting.', 'penalis-login' ); ?></span>
+		</div>
 		<?php
 	}
 
@@ -654,8 +737,19 @@ final class SettingsPage {
 						<?php
 						settings_fields( self::SETTINGS_GROUP );
 						do_settings_sections( self::PAGE_SLUG );
-						submit_button( __( 'Save Settings', 'penalis-login' ) );
 						?>
+						<div class="penalis-form-actions">
+							<?php submit_button( __( 'Save Settings', 'penalis-login' ), 'primary', 'submit', false ); ?>
+							<button
+								type="submit"
+								name="<?php echo esc_attr( Helpers::OPTION_KEY ); ?>[_reset]"
+								value="1"
+								class="button button-secondary penalis-reset-button"
+								onclick="return confirm('<?php echo esc_js( __( 'Reset all settings to their defaults? This cannot be undone.', 'penalis-login' ) ); ?>')"
+							>
+								<?php esc_html_e( 'Reset to Defaults', 'penalis-login' ); ?>
+							</button>
+						</div>
 					</form>
 				</div>
 
