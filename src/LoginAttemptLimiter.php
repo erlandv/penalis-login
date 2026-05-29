@@ -94,7 +94,7 @@ final class LoginAttemptLimiter {
 			return;
 		}
 
-		$ip = $this->getClientIp();
+		$ip = $this->ipResolver->resolveForSecurity();
 
 		if ( ! $this->isIpLockedOut( $ip ) ) {
 			return;
@@ -153,8 +153,8 @@ final class LoginAttemptLimiter {
 		string $username,
 		string $password
 	): \WP_User|\WP_Error|null {
-		$ip       = $this->getClientIp();
-		$settings = $this->getSettings();
+		$ip       = $this->ipResolver->resolveForSecurity();
+		$settings = $this->helpers->getProtectionSettings();
 		$max      = (int) $settings['max_attempts'];
 		$window   = (int) $settings['window_minutes'] * 60;
 
@@ -196,8 +196,8 @@ final class LoginAttemptLimiter {
 	 * @return void
 	 */
 	public function onLoginFailed( string $username ): void {
-		$ip          = $this->getClientIp();
-		$settings    = $this->getSettings();
+		$ip       = $this->ipResolver->resolveForSecurity();
+		$settings = $this->helpers->getProtectionSettings();
 		$max         = (int) $settings['max_attempts'];
 		$window      = (int) $settings['window_minutes'] * 60;
 		$lockout_dur = (int) $settings['lockout_minutes'] * 60;
@@ -265,40 +265,13 @@ final class LoginAttemptLimiter {
 	// Private helpers
 	// -------------------------------------------------------------------------
 
-	/**
-	 * Returns the Protection tab settings for the rate limiter.
-	 *
-	 * @return array<string, mixed>
-	 */
-	private function getSettings(): array {
-		$all      = $this->helpers->getSettings();
-		$defaults = Helpers::getDefaultProtectionSettings();
-
-		return array_merge( $defaults, $all['protection'] ?? [] );
-	}
-
-	/**
-	 * Returns the lockout error message shown to the user.
-	 *
-	 * @return string
-	 */
 	private function getLockoutMessage(): string {
-		$settings = $this->getSettings();
-		$minutes  = (int) $settings['lockout_minutes'];
+		$minutes = (int) $this->helpers->getProtectionSettings()['lockout_minutes'];
 
 		return sprintf(
 			/* translators: %d: lockout duration in minutes */
 			esc_html__( 'Too many failed login attempts. Please try again in %d minute(s).', 'penalis-login' ),
 			$minutes
 		);
-	}
-
-	/**
-	 * Returns the best-guess client IP address.
-	 *
-	 * @return string
-	 */
-	private function getClientIp(): string {
-		return $this->ipResolver->resolveForSecurity();
 	}
 }

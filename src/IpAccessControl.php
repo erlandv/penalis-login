@@ -77,8 +77,8 @@ final class IpAccessControl {
 			return;
 		}
 
-		$ip       = $this->getClientIp();
-		$settings = $this->getSettings();
+		$ip       = $this->ipResolver->resolveForSecurity();
+		$settings = $this->helpers->getProtectionSettings();
 		$mode     = (string) $settings['ip_mode'];
 
 		if ( 'allowlist' === $mode ) {
@@ -167,28 +167,4 @@ final class IpAccessControl {
 		);
 	}
 
-	// -------------------------------------------------------------------------
-	// Private helpers
-	// -------------------------------------------------------------------------
-
-	/**
-	 * Returns the Protection tab settings for IP access control.
-	 *
-	 * @return array<string, mixed>
-	 */
-	private function getSettings(): array {
-		$all      = $this->helpers->getSettings();
-		$defaults = Helpers::getDefaultProtectionSettings();
-
-		return array_merge( $defaults, $all['protection'] ?? [] );
-	}
-
-	/**
-	 * Returns the best-guess client IP address.
-	 *
-	 * @return string
-	 */
-	private function getClientIp(): string {
-		return $this->ipResolver->resolveForSecurity();
-	}
 }

@@ -59,26 +59,16 @@ final class ActivityLogger {
 		$this->repository->insert(
 			ActivityRepository::EVENT_LOGIN_SUCCESS,
 			$user_login,
-			$this->getClientIp(),
+			$this->ipResolver->resolveForLogging(),
 			$this->getUserAgent()
 		);
 	}
 
-	/**
-	 * Records a failed login attempt.
-	 *
-	 * WordPress fires wp_login_failed with ($username, $error) since WP 5.4.
-	 * The $error parameter is accepted but not used — we only need the username.
-	 *
-	 * @param  string    $username The username that was attempted.
-	 * @param  \WP_Error $error    The authentication error (unused).
-	 * @return void
-	 */
 	public function onLoginFailed( string $username, \WP_Error $error ): void {
 		$this->repository->insert(
 			ActivityRepository::EVENT_LOGIN_FAILED,
 			$username,
-			$this->getClientIp(),
+			$this->ipResolver->resolveForLogging(),
 			$this->getUserAgent()
 		);
 	}
@@ -103,12 +93,6 @@ final class ActivityLogger {
 		);
 	}
 
-	/**
-	 * Records a login attempt that was blocked by the IP blocklist.
-	 *
-	 * @param  string $ip_address The IP address that was blocked.
-	 * @return void
-	 */
 	public function logIpBlocked( string $ip_address ): void {
 		$this->repository->insert(
 			ActivityRepository::EVENT_IP_BLOCKED,
@@ -122,24 +106,6 @@ final class ActivityLogger {
 	// Private helpers
 	// -------------------------------------------------------------------------
 
-	/**
-	 * Returns the best-guess client IP address.
-	 *
-	 * Checks common proxy headers first, then falls back to REMOTE_ADDR.
-	 * Note: headers like X-Forwarded-For can be spoofed — this is acceptable
-	 * for logging purposes but should not be used for security decisions alone.
-	 *
-	 * @return string
-	 */
-	private function getClientIp(): string {
-		return $this->ipResolver->resolveForLogging();
-	}
-
-	/**
-	 * Returns the sanitized User-Agent string.
-	 *
-	 * @return string
-	 */
 	private function getUserAgent(): string {
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput
 		$ua = isset( $_SERVER['HTTP_USER_AGENT'] )

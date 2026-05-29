@@ -64,8 +64,8 @@ final class LoginNotifier {
 	 * @return void
 	 */
 	public function onLoginFailed( string $username ): void {
-		$ip       = $this->getClientIp();
-		$settings = $this->getSettings();
+		$ip       = $this->ipResolver->resolveForSecurity();
+		$settings = $this->helpers->getProtectionSettings();
 
 		$threshold = (int) $settings['notify_threshold'];
 		$window    = (int) $settings['window_minutes'] * 60;
@@ -95,15 +95,6 @@ final class LoginNotifier {
 	// Email
 	// -------------------------------------------------------------------------
 
-	/**
-	 * Sends the alert email to the configured recipient.
-	 *
-	 * @param  string              $ip       The offending IP address.
-	 * @param  string              $username The last attempted username.
-	 * @param  int                 $count    Number of failures detected.
-	 * @param  array<string,mixed> $settings Protection settings array.
-	 * @return void
-	 */
 	private function sendAlert(
 		string $ip,
 		string $username,
@@ -154,28 +145,4 @@ final class LoginNotifier {
 		);
 	}
 
-	// -------------------------------------------------------------------------
-	// Private helpers
-	// -------------------------------------------------------------------------
-
-	/**
-	 * Returns the Protection tab settings for the notifier.
-	 *
-	 * @return array<string, mixed>
-	 */
-	private function getSettings(): array {
-		$all      = $this->helpers->getSettings();
-		$defaults = Helpers::getDefaultProtectionSettings();
-
-		return array_merge( $defaults, $all['protection'] ?? [] );
-	}
-
-	/**
-	 * Returns the best-guess client IP address.
-	 *
-	 * @return string
-	 */
-	private function getClientIp(): string {
-		return $this->ipResolver->resolveForSecurity();
-	}
 }

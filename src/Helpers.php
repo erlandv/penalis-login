@@ -120,6 +120,23 @@ final class Helpers {
 	}
 
 	/**
+	 * Returns the merged protection settings (defaults + saved values).
+	 *
+	 * Single source of truth used by all protection feature classes.
+	 * Eliminates the repeated array_merge(defaults, protection) pattern.
+	 *
+	 * @return array<string,mixed>
+	 */
+	public function getProtectionSettings(): array {
+		$settings = $this->getSettings();
+
+		return array_merge(
+			self::getDefaultProtectionSettings(),
+			$settings['protection'] ?? []
+		);
+	}
+
+	/**
 	 * Returns whether the plugin is enabled.
 	 *
 	 * Defaults to true so the plugin works out-of-the-box after activation.
