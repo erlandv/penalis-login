@@ -111,8 +111,10 @@ final class SettingsPage {
 			$merged               = $existing;
 			$merged['protection'] = $sanitized['protection'];
 
-			// Sync IP lists from textarea fields.
-			$this->syncIpListsFromPost();
+			// Sync IP lists from textarea fields (skipped on reset — handled separately).
+			if ( ! isset( $input['_reset'] ) || '1' !== (string) $input['_reset'] ) {
+				$this->syncIpListsFromPost();
+			}
 		}
 
 		update_option( Helpers::OPTION_KEY, $merged, false );
@@ -217,8 +219,16 @@ final class SettingsPage {
 
 		// ---- Reset to defaults ---------------------------------------------
 		if ( isset( $input['_reset'] ) && '1' === (string) $input['_reset'] ) {
-			update_option( Helpers::DELETE_ON_UNINSTALL_KEY, false, false );
-			return [ Helpers::getDefaultSettings(), [] ];
+			if ( 'general' === $tab ) {
+				update_option( Helpers::DELETE_ON_UNINSTALL_KEY, false, false );
+				return [ Helpers::getDefaultSettings(), [] ];
+			}
+
+			// Protection tab reset: also wipe IP lists from DB.
+			$this->ipRepo->sync( \PenalisLogin\Database\IpRulesRepository::TYPE_BLOCK, [] );
+			$this->ipRepo->sync( \PenalisLogin\Database\IpRulesRepository::TYPE_ALLOW, [] );
+
+			return [ [ 'protection' => Helpers::getDefaultProtectionSettings() ], [] ];
 		}
 
 		if ( 'general' === $tab ) {
@@ -397,15 +407,13 @@ final class SettingsPage {
 
 								<div class="penalis-form-actions">
 									<?php submit_button( __( 'Save Settings', 'penalis-login' ), 'primary', 'submit', false ); ?>
-									<?php if ( 'general' === $active_tab ) : ?>
-										<button
-											type="submit"
-											name="<?php echo esc_attr( Helpers::OPTION_KEY ); ?>[_reset]"
-											value="1"
-											class="button button-secondary penalis-reset-button"
-											onclick="return confirm('<?php echo esc_js( __( 'Reset all settings to their defaults? This cannot be undone.', 'penalis-login' ) ); ?>')"
-										><?php esc_html_e( 'Reset to Defaults', 'penalis-login' ); ?></button>
-									<?php endif; ?>
+									<button
+										type="submit"
+										name="<?php echo esc_attr( Helpers::OPTION_KEY ); ?>[_reset]"
+										value="1"
+										class="button button-secondary penalis-reset-button"
+										onclick="return confirm('<?php echo esc_js( 'general' === $active_tab ? __( 'Reset all settings to their defaults? This cannot be undone.', 'penalis-login' ) : __( 'Reset all Protection settings to their defaults and clear all IP lists? This cannot be undone.', 'penalis-login' ) ); ?>')"
+									><?php esc_html_e( 'Reset to Defaults', 'penalis-login' ); ?></button>
 								</div>
 							</form>
 
