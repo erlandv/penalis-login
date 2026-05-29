@@ -73,13 +73,17 @@ final class LoginNotifier {
 		// Count recent failures from this IP.
 		$failures = $this->repository->countRecentFailures( $ip, $window );
 
-		// Only notify when the threshold is exactly reached (not on every
-		// subsequent failure) to avoid email flooding.
-		if ( $failures !== $threshold ) {
+		// Use >= instead of === to be resilient against race conditions.
+		// If two requests arrive simultaneously, $failures could jump past
+		// $threshold before the transient is set, causing === to never match
+		// and the notification to never fire.
+		if ( $failures < $threshold ) {
 			return;
 		}
 
 		// Prevent duplicate notifications for the same IP within the window.
+		// This guard also handles the case where $failures > $threshold —
+		// the transient is already set from the first time threshold was hit.
 		$transient_key = self::NOTIFIED_PREFIX . md5( $ip );
 		if ( false !== get_transient( $transient_key ) ) {
 			return;
