@@ -317,10 +317,6 @@ final class ProtectionTab {
 	// -------------------------------------------------------------------------
 
 	private function getProtectionSetting( string $key ): mixed {
-		$all      = $this->helpers->getSettings();
-		$defaults = Helpers::getDefaultProtectionSettings();
-		$merged   = array_merge( $defaults, $all['protection'] ?? [] );
-
-		return $merged[ $key ] ?? null;
+		return $this->helpers->getProtectionSettings()[ $key ] ?? null;
 	}
 }

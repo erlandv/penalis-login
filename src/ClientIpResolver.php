@@ -145,19 +145,13 @@ final class ClientIpResolver {
 	 * @return string[]
 	 */
 	private function getTrustedProxies(): array {
-		$settings = $this->helpers->getSettings();
-		$prot     = array_merge(
-			Helpers::getDefaultProtectionSettings(),
-			$settings['protection'] ?? []
-		);
+		$prot = $this->helpers->getProtectionSettings();
 
 		if ( empty( $prot['trusted_proxies_enabled'] ) ) {
 			return [];
 		}
 
-		$raw = (string) ( $prot['trusted_proxies'] ?? '' );
-
-		return $this->parseProxyList( $raw );
+		return $this->parseProxyList( (string) ( $prot['trusted_proxies'] ?? '' ) );
 	}
 
 	/**
