@@ -56,8 +56,13 @@ final class LoginAttemptLimiter {
 	 * @return void
 	 */
 	public function register(): void {
-		// Check lockout status before WordPress processes the login form.
-		// Priority 1 so we run before other auth filters.
+		// Block locked-out IPs at the page level — before the login form
+		// is rendered. This prevents the form from appearing at all when
+		// an IP is locked out, rather than just showing an error on submit.
+		add_action( 'init', [ $this, 'blockLockedOutRequest' ], 5 );
+
+		// Also hook into the authenticate filter as a second layer of defence
+		// (catches programmatic auth calls that bypass the login page).
 		add_filter( 'authenticate', [ $this, 'checkLockout' ], 1, 3 );
 
 		// Record failures and set lockout transients after WP processes auth.
@@ -69,10 +74,73 @@ final class LoginAttemptLimiter {
 	// -------------------------------------------------------------------------
 
 	/**
+	 * Blocks the login page entirely for locked-out IPs.
+	 *
+	 * Runs on 'init' at priority 5 — before the login form is rendered.
+	 * Detects the login page by matching the REQUEST_URI against the
+	 * configured slug directly, without relying on query vars (which are
+	 * not yet populated at init time).
+	 *
+	 * @return void
+	 */
+	public function blockLockedOutRequest(): void {
+		if ( ! $this->isLoginPageUri() ) {
+			return;
+		}
+
+		// Anti-lockout: never block logged-in administrators.
+		if ( $this->helpers->isLoggedInAdmin() ) {
+			return;
+		}
+
+		$ip = $this->getClientIp();
+
+		if ( ! $this->isIpLockedOut( $ip ) ) {
+			return;
+		}
+
+		status_header( 429 );
+		nocache_headers();
+
+		wp_die(
+			esc_html( $this->getLockoutMessage() ),
+			esc_html__( 'Too Many Requests', 'penalis-login' ),
+			[ 'response' => 429 ]
+		);
+	}
+
+	/**
+	 * Returns whether the current REQUEST_URI matches the login page.
+	 *
+	 * Checks both the custom slug (from settings) and the native wp-login.php.
+	 * Does NOT use get_query_var() because query vars are not populated yet
+	 * at init time.
+	 *
+	 * @return bool
+	 */
+	private function isLoginPageUri(): bool {
+		// Native wp-login.php — already handled by Helpers.
+		if ( $this->helpers->isWpLoginRequest() ) {
+			return true;
+		}
+
+		// Custom slug — match the first path segment of REQUEST_URI.
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		$uri  = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+		$path = explode( '?', (string) $uri, 2 )[0];
+		$path = trim( $path, '/' );
+
+		// Take only the first segment (e.g. "login" from "login/foo").
+		$first_segment = explode( '/', $path, 2 )[0];
+
+		return $first_segment === $this->helpers->getLoginSlug();
+	}
+
+	/**
 	 * Checks whether the current IP or username is locked out.
 	 *
-	 * Hooked to 'authenticate' at priority 1. If a lockout is active,
-	 * returns a WP_Error to short-circuit the authentication pipeline.
+	 * Hooked to 'authenticate' at priority 1. Acts as a second layer of
+	 * defence for programmatic auth calls that bypass the login page.
 	 *
 	 * @param  \WP_User|\WP_Error|null $user     Current auth result.
 	 * @param  string                  $username Submitted username.
@@ -84,26 +152,34 @@ final class LoginAttemptLimiter {
 		string $username,
 		string $password
 	): \WP_User|\WP_Error|null {
-		$ip = $this->getClientIp();
+		$ip       = $this->getClientIp();
+		$settings = $this->getSettings();
+		$max      = (int) $settings['max_attempts'];
+		$window   = (int) $settings['window_minutes'] * 60;
 
-		// Check IP lockout.
-		if ( $this->isIpLockedOut( $ip ) ) {
-			$this->logger->logBlocked( $username, $ip );
+		// Check transient lockout first (fast path — set after threshold is hit).
+		$ip_locked   = $this->isIpLockedOut( $ip );
+		$user_locked = '' !== $username && $this->isUserLockedOut( $username );
 
-			return new \WP_Error(
-				'penalis_ip_locked',
-				$this->getLockoutMessage()
-			);
+		// Fallback: if no transient yet, count directly from DB.
+		// This handles the case where the threshold is hit on this exact
+		// request — the transient won't exist yet but the DB count will.
+		if ( ! $ip_locked ) {
+			$ip_locked = $this->repository->countRecentFailures( $ip, $window ) >= $max;
 		}
 
-		// Check username lockout.
-		if ( '' !== $username && $this->isUserLockedOut( $username ) ) {
-			$this->logger->logBlocked( $username, $ip );
+		if ( ! $user_locked && '' !== $username ) {
+			$user_locked = $this->repository->countRecentFailuresByUsername( $username, $window ) >= $max;
+		}
 
-			return new \WP_Error(
-				'penalis_user_locked',
-				$this->getLockoutMessage()
-			);
+		if ( $ip_locked ) {
+			$this->logger->logBlocked( $username, $ip );
+			return new \WP_Error( 'penalis_ip_locked', $this->getLockoutMessage() );
+		}
+
+		if ( $user_locked ) {
+			$this->logger->logBlocked( $username, $ip );
+			return new \WP_Error( 'penalis_user_locked', $this->getLockoutMessage() );
 		}
 
 		return $user;
