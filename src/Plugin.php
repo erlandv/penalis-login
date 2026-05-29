@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace PenalisLogin;
 
 use PenalisLogin\Admin\SettingsPage;
-use PenalisLogin\Admin\IpRuleActions;
+use PenalisLogin\Admin\ActivityLogActions;
 use PenalisLogin\Api\LoginSlugEndpoint;
 use PenalisLogin\Database\ActivityRepository;
 use PenalisLogin\Database\IpRulesRepository;
@@ -108,9 +108,9 @@ final class Plugin {
 			);
 			$this->settingsPage->register();
 
-			// IP rule and activity log POST action handlers.
-			$ipRuleActions = new IpRuleActions( $this->activityRepo );
-			$ipRuleActions->register();
+			// Activity log POST action handler.
+			$activityLogActions = new ActivityLogActions( $this->activityRepo );
+			$activityLogActions->register();
 		}
 
 		// REST endpoint — always registered so Nginx auth_request configs

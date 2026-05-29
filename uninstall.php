@@ -40,8 +40,8 @@ delete_option( 'penalis_login_delete_on_uninstall' );
 delete_option( 'penalis_login_db_version' );
 
 // Remove any transients created by the plugin.
-delete_transient( 'penalis_login_flush_rules' );
-delete_transient( 'penalis_login_pending_delete_flag' );
+// Use a direct DB query to catch all prefixed transients including
+// lockout entries (penalis_lockout_ip_*, penalis_lockout_user_*, etc.).
 
 // Remove all transients with plugin prefixes.
 // WordPress stores transients as options with the '_transient_' prefix.

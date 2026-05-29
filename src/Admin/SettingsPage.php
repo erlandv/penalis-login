@@ -47,14 +47,7 @@ final class SettingsPage {
 	public function register(): void {
 		add_action( 'admin_menu',            [ $this, 'addMenuPage' ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueueAssets' ] );
-
-		// Handle form submission via admin-post.php.
 		add_action( 'admin_post_penalis_login_save', [ $this, 'handleSave' ] );
-
-		// Sync the delete-on-uninstall flag.
-		add_action( 'update_option_' . Helpers::OPTION_KEY, [ $this, 'syncDeleteOnUninstallOption' ], 10, 2 );
-		add_action( 'add_option_'    . Helpers::OPTION_KEY, [ $this, 'syncDeleteOnUninstallOptionOnAdd' ], 10, 2 );
-
 		add_filter( 'plugin_action_links_' . PENALIS_LOGIN_BASENAME, [ $this, 'addPluginActionLinks' ] );
 	}
 
@@ -494,10 +487,7 @@ final class SettingsPage {
 	// -------------------------------------------------------------------------
 
 	private function renderSidebar( string $tab ): void {
-		$prot = array_merge(
-			Helpers::getDefaultProtectionSettings(),
-			$this->helpers->getSettings()['protection'] ?? []
-		);
+		$prot = $this->helpers->getProtectionSettings();
 		?>
 		<div class="penalis-login-info-box">
 			<h3><?php esc_html_e( 'Current Status', 'penalis-login' ); ?></h3>
@@ -587,17 +577,9 @@ final class SettingsPage {
 	// Delete-on-uninstall sync
 	// -------------------------------------------------------------------------
 
-	public function syncDeleteOnUninstallOption( mixed $old_value, mixed $new_value ): void {
-		$pending = get_transient( 'penalis_login_pending_delete_flag' );
-		if ( false !== $pending ) {
-			delete_transient( 'penalis_login_pending_delete_flag' );
-			update_option( Helpers::DELETE_ON_UNINSTALL_KEY, '1' === $pending, false );
-		}
-	}
-
-	public function syncDeleteOnUninstallOptionOnAdd( string $option, mixed $value ): void {
-		$this->syncDeleteOnUninstallOption( null, $value );
-	}
+	// Removed: syncDeleteOnUninstallOption() and syncDeleteOnUninstallOptionOnAdd()
+	// were dead code. The delete_on_uninstall flag is written directly via
+	// update_option() inside sanitizeGeneralTab(), so no hook-based sync is needed.
 
 	// -------------------------------------------------------------------------
 	// Helpers
