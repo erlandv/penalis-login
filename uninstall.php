@@ -43,6 +43,17 @@ delete_option( 'penalis_login_db_version' );
 delete_transient( 'penalis_login_flush_rules' );
 delete_transient( 'penalis_login_pending_delete_flag' );
 
+// Remove all transients with plugin prefixes.
+// WordPress stores transients as options with the '_transient_' prefix.
+// We use a direct DB query because there is no WP API for prefix-based deletion.
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+$wpdb->query(
+	"DELETE FROM {$wpdb->options}
+	 WHERE option_name LIKE '\_transient\_penalis\_%'
+	    OR option_name LIKE '\_transient\_timeout\_penalis\_%'"
+);
+// phpcs:enable
+
 // Drop custom database tables.
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.NoCaching
 $wpdb->query( 'DROP TABLE IF EXISTS ' . esc_sql( $wpdb->prefix . 'penalis_login_activity' ) );
