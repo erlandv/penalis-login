@@ -52,6 +52,7 @@ final class Plugin {
 	private ?Helpers $helpers = null;
 	private ActivityRepository $activityRepo;
 	private IpRulesRepository $ipRepo;
+	private ClientIpResolver $ipResolver;
 	private RewriteHandler $rewriteHandler;
 	private UrlFilter $urlFilter;
 	private SecurityHandler $securityHandler;
@@ -88,14 +89,13 @@ final class Plugin {
 		$this->helpers      = new Helpers();
 		$this->activityRepo = new ActivityRepository();
 		$this->ipRepo       = new IpRulesRepository();
+		$this->ipResolver   = new ClientIpResolver( $this->helpers );
 
-		// Ensure custom tables exist. This is a lightweight check — dbDelta()
-		// is only called when the schema version option is missing or outdated,
-		// so it does not run on every request in normal operation.
+		// Ensure custom tables exist.
 		$this->maybeCreateTables();
 
-		// Activity logger — always active so the log is populated from day one.
-		$this->activityLogger = new ActivityLogger( $this->activityRepo );
+		// Activity logger — uses resolveForLogging() (proxy headers acceptable).
+		$this->activityLogger = new ActivityLogger( $this->activityRepo, $this->ipResolver );
 		$this->activityLogger->register();
 
 		// Admin UI — always loaded so the admin can manage settings even when
@@ -149,28 +149,30 @@ final class Plugin {
 			$settings['protection'] ?? []
 		);
 
-		// Login Attempt Limiter.
+		// Login Attempt Limiter — uses resolveForSecurity() (REMOTE_ADDR only unless trusted proxy configured).
 		if ( ! empty( $prot['attempt_limiter_enabled'] ) ) {
 			$this->attemptLimiter = new LoginAttemptLimiter(
 				$this->helpers,
 				$this->activityRepo,
-				$this->activityLogger
+				$this->activityLogger,
+				$this->ipResolver
 			);
 			$this->attemptLimiter->register();
 		}
 
 		// Login Notification.
 		if ( ! empty( $prot['notify_enabled'] ) ) {
-			$this->loginNotifier = new LoginNotifier( $this->helpers, $this->activityRepo );
+			$this->loginNotifier = new LoginNotifier( $this->helpers, $this->activityRepo, $this->ipResolver );
 			$this->loginNotifier->register();
 		}
 
-		// IP Access Control.
+		// IP Access Control — uses resolveForSecurity().
 		if ( ! empty( $prot['ip_access_enabled'] ) ) {
 			$this->ipAccessControl = new IpAccessControl(
 				$this->helpers,
 				$this->ipRepo,
-				$this->activityLogger
+				$this->activityLogger,
+				$this->ipResolver
 			);
 			$this->ipAccessControl->register();
 		}

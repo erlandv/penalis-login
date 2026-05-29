@@ -129,6 +129,19 @@ final class ProtectionTab {
 				</td>
 			</tr>
 		</tbody></table>
+
+		<h2><?php esc_html_e( 'Trusted Proxies', 'penalis-login' ); ?></h2>
+		<p><?php esc_html_e( 'If your site is behind a reverse proxy or Cloudflare, configure trusted proxy IPs here so rate limiting and IP access control use the real visitor IP instead of the proxy IP.', 'penalis-login' ); ?></p>
+		<table class="form-table" role="presentation"><tbody>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Enable Trusted Proxies', 'penalis-login' ); ?></th>
+				<td><?php $this->renderTrustedProxiesEnabledField(); ?></td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="penalis_trusted_proxies"><?php esc_html_e( 'Proxy IP Addresses', 'penalis-login' ); ?></label></th>
+				<td><?php $this->renderTrustedProxiesField(); ?></td>
+			</tr>
+		</tbody></table>
 		<?php
 	}
 
@@ -260,6 +273,42 @@ final class ProtectionTab {
 		<div class="penalis-field-note penalis-field-note-warning" style="margin-top:8px; max-width:680px;">
 			<span>&#9888; <?php esc_html_e( 'Allowlist mode will deny everyone not on the list, including you. Make sure your own IP is added before enabling this mode.', 'penalis-login' ); ?></span>
 		</div>
+		<?php
+	}
+
+	// -------------------------------------------------------------------------
+	// Trusted Proxies fields
+	// -------------------------------------------------------------------------
+
+	private function renderTrustedProxiesEnabledField(): void {
+		$val = $this->getProtectionSetting( 'trusted_proxies_enabled' );
+		?>
+		<label for="penalis_trusted_proxies_enabled">
+			<input type="checkbox" id="penalis_trusted_proxies_enabled"
+				name="<?php echo esc_attr( Helpers::OPTION_KEY ); ?>[protection][trusted_proxies_enabled]"
+				value="1" <?php checked( (bool) $val ); ?> />
+			<?php esc_html_e( 'Trust proxy headers (X-Forwarded-For, CF-Connecting-IP, X-Real-IP) from the IPs listed below', 'penalis-login' ); ?>
+		</label>
+		<div class="penalis-field-note penalis-field-note-warning" style="margin-top:8px; max-width:680px;">
+			<span>&#9888; <?php esc_html_e( 'Only enable this if your site is behind a reverse proxy. Enabling it without adding the correct proxy IPs below will make IP-based security features unreliable.', 'penalis-login' ); ?></span>
+		</div>
+		<?php
+	}
+
+	private function renderTrustedProxiesField(): void {
+		$val = (string) $this->getProtectionSetting( 'trusted_proxies' );
+		?>
+		<textarea
+			id="penalis_trusted_proxies"
+			name="<?php echo esc_attr( Helpers::OPTION_KEY ); ?>[protection][trusted_proxies]"
+			rows="4"
+			class="large-text code penalis-ip-textarea"
+			placeholder="103.21.244.0 # Cloudflare&#10;103.22.200.0 # Cloudflare&#10;127.0.0.1 # local Nginx"
+			spellcheck="false"
+		><?php echo esc_textarea( $val ); ?></textarea>
+		<p class="description">
+			<?php esc_html_e( 'One IP address per line. Inline comments supported. Only requests arriving from these IPs will have their proxy headers trusted.', 'penalis-login' ); ?>
+		</p>
 		<?php
 	}
 

@@ -36,7 +36,8 @@ final class IpAccessControl {
 	public function __construct(
 		private readonly Helpers $helpers,
 		private readonly IpRulesRepository $repository,
-		private readonly ActivityLogger $logger
+		private readonly ActivityLogger $logger,
+		private readonly ClientIpResolver $ipResolver
 	) {}
 
 	// -------------------------------------------------------------------------
@@ -188,23 +189,6 @@ final class IpAccessControl {
 	 * @return string
 	 */
 	private function getClientIp(): string {
-		// phpcs:disable WordPress.Security.ValidatedSanitizedInput
-		$candidates = [
-			$_SERVER['HTTP_CF_CONNECTING_IP'] ?? '',
-			$_SERVER['HTTP_X_REAL_IP']         ?? '',
-			$_SERVER['HTTP_X_FORWARDED_FOR']   ?? '',
-			$_SERVER['REMOTE_ADDR']            ?? '',
-		];
-		// phpcs:enable
-
-		foreach ( $candidates as $candidate ) {
-			$ip = trim( explode( ',', $candidate )[0] );
-
-			if ( '' !== $ip && filter_var( $ip, FILTER_VALIDATE_IP ) ) {
-				return $ip;
-			}
-		}
-
-		return '';
+		return $this->ipResolver->resolveForSecurity();
 	}
 }

@@ -80,12 +80,16 @@ final class Helpers {
 
 			// Login Notification
 			'notify_enabled'          => false,
-			'notify_email'            => '',   // Falls back to admin_email when empty.
-			'notify_threshold'        => 5,    // Mirrors max_attempts by default.
+			'notify_email'            => '',
+			'notify_threshold'        => 5,
 
 			// IP Access Control
 			'ip_access_enabled'       => false,
-			'ip_mode'                 => 'blocklist', // 'blocklist' | 'allowlist'
+			'ip_mode'                 => 'blocklist',
+
+			// Trusted Proxies
+			'trusted_proxies_enabled' => false,
+			'trusted_proxies'         => '',
 		];
 	}
 

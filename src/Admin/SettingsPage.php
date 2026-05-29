@@ -295,6 +295,10 @@ final class SettingsPage {
 			'ip_mode'                 => in_array( $raw['ip_mode'] ?? '', [ 'blocklist', 'allowlist' ], true )
 				? (string) $raw['ip_mode']
 				: 'blocklist',
+
+			// Trusted Proxies
+			'trusted_proxies_enabled' => isset( $raw['trusted_proxies_enabled'] ) && '1' === (string) $raw['trusted_proxies_enabled'],
+			'trusted_proxies'         => sanitize_textarea_field( (string) ( $raw['trusted_proxies'] ?? '' ) ),
 		];
 
 		return [ [ 'protection' => $protection ], [] ];

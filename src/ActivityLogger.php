@@ -19,15 +19,13 @@ use PenalisLogin\Database\ActivityRepository;
 
 /**
  * Class ActivityLogger
- *
- * Listens to WordPress login hooks and persists activity records.
  */
 final class ActivityLogger {
 
-	/**
-	 * @param ActivityRepository $repository Activity log repository.
-	 */
-	public function __construct( private readonly ActivityRepository $repository ) {}
+	public function __construct(
+		private readonly ActivityRepository $repository,
+		private readonly ClientIpResolver $ipResolver
+	) {}
 
 	// -------------------------------------------------------------------------
 	// Registration
@@ -134,25 +132,7 @@ final class ActivityLogger {
 	 * @return string
 	 */
 	private function getClientIp(): string {
-		// phpcs:disable WordPress.Security.ValidatedSanitizedInput
-		$candidates = [
-			$_SERVER['HTTP_CF_CONNECTING_IP'] ?? '',   // Cloudflare
-			$_SERVER['HTTP_X_REAL_IP']         ?? '',   // Nginx proxy
-			$_SERVER['HTTP_X_FORWARDED_FOR']   ?? '',   // Generic proxy (may be comma-list)
-			$_SERVER['REMOTE_ADDR']            ?? '',
-		];
-		// phpcs:enable
-
-		foreach ( $candidates as $candidate ) {
-			// X-Forwarded-For may contain a comma-separated list; take the first.
-			$ip = trim( explode( ',', $candidate )[0] );
-
-			if ( '' !== $ip && filter_var( $ip, FILTER_VALIDATE_IP ) ) {
-				return $ip;
-			}
-		}
-
-		return '';
+		return $this->ipResolver->resolveForLogging();
 	}
 
 	/**
