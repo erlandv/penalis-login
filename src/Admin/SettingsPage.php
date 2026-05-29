@@ -448,7 +448,7 @@ final class SettingsPage {
 		if ( ! empty( $errors ) ) {
 			foreach ( $errors as $error ) {
 				printf(
-					'<div class="notice notice-error"><p>%s</p></div>',
+					'<div class="notice notice-error is-dismissible"><p>%s</p></div>',
 					esc_html( $error )
 				);
 			}
@@ -456,9 +456,8 @@ final class SettingsPage {
 		}
 
 		printf(
-			'<div class="notice notice-success"><p><span class="penalis-notice-icon">&#10003;</span> <strong>%s</strong> %s</p></div>',
-			esc_html__( 'Settings saved.', 'penalis-login' ),
-			esc_html__( 'Your settings have been updated.', 'penalis-login' )
+			'<div class="notice notice-success is-dismissible"><p>%s</p></div>',
+			esc_html__( 'Settings saved.', 'penalis-login' )
 		);
 	}
 
