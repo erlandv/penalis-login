@@ -3,8 +3,6 @@
  * Plugin orchestrator / service container.
  *
  * Bootstraps all plugin components and wires them together.
- * Uses the singleton pattern so the same instance is reused across the
- * request lifecycle without polluting global scope.
  *
  * @package PenalisLogin
  */
@@ -14,7 +12,10 @@ declare(strict_types=1);
 namespace PenalisLogin;
 
 use PenalisLogin\Admin\SettingsPage;
+use PenalisLogin\Admin\IpRuleActions;
 use PenalisLogin\Api\LoginSlugEndpoint;
+use PenalisLogin\Database\ActivityRepository;
+use PenalisLogin\Database\IpRulesRepository;
 
 /**
  * Class Plugin
@@ -28,22 +29,14 @@ final class Plugin {
 	// Singleton
 	// -------------------------------------------------------------------------
 
-	/** @var Plugin|null Singleton instance. */
+	/** @var Plugin|null */
 	private static ?Plugin $instance = null;
 
-	/** @var bool Whether boot() has already run. */
+	/** @var bool */
 	private bool $booted = false;
 
-	/**
-	 * Private constructor — use getInstance().
-	 */
 	private function __construct() {}
 
-	/**
-	 * Returns the singleton instance.
-	 *
-	 * @return Plugin
-	 */
 	public static function getInstance(): Plugin {
 		if ( null === self::$instance ) {
 			self::$instance = new self();
@@ -56,22 +49,17 @@ final class Plugin {
 	// Services
 	// -------------------------------------------------------------------------
 
-	/** @var Helpers|null Shared helper utilities. */
 	private ?Helpers $helpers = null;
-
-	/** @var RewriteHandler Rewrite rule manager. */
+	private ActivityRepository $activityRepo;
+	private IpRulesRepository $ipRepo;
 	private RewriteHandler $rewriteHandler;
-
-	/** @var UrlFilter URL filter manager. */
 	private UrlFilter $urlFilter;
-
-	/** @var SecurityHandler Security / blocking handler. */
 	private SecurityHandler $securityHandler;
-
-	/** @var SettingsPage|null Admin settings page (admin-only). */
+	private ActivityLogger $activityLogger;
+	private ?LoginAttemptLimiter $attemptLimiter = null;
+	private ?LoginNotifier $loginNotifier = null;
+	private ?IpAccessControl $ipAccessControl = null;
 	private ?SettingsPage $settingsPage = null;
-
-	/** @var LoginSlugEndpoint REST endpoint for Nginx auth_request integration. */
 	private LoginSlugEndpoint $loginSlugEndpoint;
 
 	// -------------------------------------------------------------------------
@@ -80,8 +68,6 @@ final class Plugin {
 
 	/**
 	 * Initialises all plugin components.
-	 *
-	 * Safe to call multiple times — subsequent calls are no-ops.
 	 *
 	 * @return void
 	 */
@@ -92,63 +78,145 @@ final class Plugin {
 
 		$this->booted = true;
 
-		// Load text domain for i18n.
 		load_plugin_textdomain(
 			'penalis-login',
 			false,
 			dirname( PENALIS_LOGIN_BASENAME ) . '/languages'
 		);
 
-		// Instantiate shared helpers first — other classes depend on it.
-		$this->helpers = new Helpers();
+		// Shared services — always instantiated.
+		$this->helpers      = new Helpers();
+		$this->activityRepo = new ActivityRepository();
+		$this->ipRepo       = new IpRulesRepository();
 
-		// If the plugin is disabled via settings, bail out early.
-		// We still load the settings page so the admin can re-enable it.
+		// Ensure custom tables exist. This is a lightweight check — dbDelta()
+		// is only called when the schema version option is missing or outdated,
+		// so it does not run on every request in normal operation.
+		$this->maybeCreateTables();
+
+		// Activity logger — always active so the log is populated from day one.
+		$this->activityLogger = new ActivityLogger( $this->activityRepo );
+		$this->activityLogger->register();
+
+		// Admin UI — always loaded so the admin can manage settings even when
+		// the plugin's main functionality is disabled.
 		if ( is_admin() ) {
-			$this->settingsPage = new SettingsPage( $this->helpers );
+			$this->settingsPage = new SettingsPage(
+				$this->helpers,
+				$this->ipRepo,
+				$this->activityRepo
+			);
 			$this->settingsPage->register();
+
+			// IP rule and activity log POST action handlers.
+			$ipRuleActions = new IpRuleActions( $this->activityRepo );
+			$ipRuleActions->register();
 		}
 
-		// REST endpoint — answers Nginx auth_request subrequests so Nginx
-		// always knows the current login slug without manual config updates.
-		// Registered unconditionally (even when the plugin is disabled) so
-		// Nginx auth_request configs don't silently break when the plugin is
-		// toggled off. The endpoint is passive and only responds when called.
+		// REST endpoint — always registered so Nginx auth_request configs
+		// don't break when the plugin is toggled off.
 		$this->loginSlugEndpoint = new LoginSlugEndpoint( $this->helpers );
 		$this->loginSlugEndpoint->register();
 
+		// Bail out here if the plugin is disabled.
 		if ( ! $this->helpers->isPluginEnabled() ) {
 			return;
 		}
 
-		// Rewrite handler — manages custom login slug rewrite rules.
+		// Core login URL rewriting.
 		$this->rewriteHandler = new RewriteHandler( $this->helpers );
 		$this->rewriteHandler->register();
 
-		// URL filter — replaces all wp-login.php references in generated URLs.
 		$this->urlFilter = new UrlFilter( $this->helpers );
 		$this->urlFilter->register();
 
-		// Security handler — blocks direct access to wp-login.php.
 		$this->securityHandler = new SecurityHandler( $this->helpers );
 		$this->securityHandler->register();
+
+		// Protection features — only active when individually enabled.
+		$this->bootProtectionFeatures();
+	}
+
+	/**
+	 * Boots the optional protection features based on their individual settings.
+	 *
+	 * @return void
+	 */
+	private function bootProtectionFeatures(): void {
+		$settings = $this->helpers->getSettings();
+		$prot     = array_merge(
+			Helpers::getDefaultProtectionSettings(),
+			$settings['protection'] ?? []
+		);
+
+		// Login Attempt Limiter.
+		if ( ! empty( $prot['attempt_limiter_enabled'] ) ) {
+			$this->attemptLimiter = new LoginAttemptLimiter(
+				$this->helpers,
+				$this->activityRepo,
+				$this->activityLogger
+			);
+			$this->attemptLimiter->register();
+		}
+
+		// Login Notification.
+		if ( ! empty( $prot['notify_enabled'] ) ) {
+			$this->loginNotifier = new LoginNotifier( $this->helpers, $this->activityRepo );
+			$this->loginNotifier->register();
+		}
+
+		// IP Access Control.
+		if ( ! empty( $prot['ip_access_enabled'] ) ) {
+			$this->ipAccessControl = new IpAccessControl(
+				$this->helpers,
+				$this->ipRepo,
+				$this->activityLogger
+			);
+			$this->ipAccessControl->register();
+		}
 	}
 
 	// -------------------------------------------------------------------------
-	// Accessors (used by other classes / tests)
+	// Accessors
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Returns the Helpers instance.
-	 *
 	 * @return Helpers
-	 * @throws \LogicException If called before boot() has been run.
+	 * @throws \LogicException If called before boot().
 	 */
 	public function getHelpers(): Helpers {
 		if ( null === $this->helpers ) {
-			throw new \LogicException( 'Plugin::getHelpers() called before boot(). Call Plugin::getInstance()->boot() first.' );
+			throw new \LogicException( 'Plugin::getHelpers() called before boot().' );
 		}
 
 		return $this->helpers;
+	}
+
+	// -------------------------------------------------------------------------
+	// Table creation guard
+	// -------------------------------------------------------------------------
+
+	/** Option key that stores the installed DB schema version. */
+	private const DB_VERSION_OPTION = 'penalis_login_db_version';
+
+	/** Current schema version — bump this when table structure changes. */
+	private const DB_VERSION = '1.0';
+
+	/**
+	 * Creates the custom tables if they are missing or the schema version
+	 * option is absent (e.g. after a plugin update that added new tables).
+	 *
+	 * Uses a lightweight option check so dbDelta() is NOT called on every
+	 * request — only when the version is missing or outdated.
+	 *
+	 * @return void
+	 */
+	private function maybeCreateTables(): void {
+		if ( get_option( self::DB_VERSION_OPTION ) === self::DB_VERSION ) {
+			return;
+		}
+
+		\PenalisLogin\Database\Schema::createTables();
+		update_option( self::DB_VERSION_OPTION, self::DB_VERSION, false );
 	}
 }

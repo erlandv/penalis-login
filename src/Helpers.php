@@ -58,6 +58,34 @@ final class Helpers {
 			'login_slug'              => self::DEFAULT_SLUG,
 			'block_behavior'          => '404',
 			'wp_admin_guest_behavior' => 'redirect_login',
+			'protection'              => self::getDefaultProtectionSettings(),
+		];
+	}
+
+	/**
+	 * Returns the default settings for the Protection tab.
+	 *
+	 * All protection features are OFF by default — the admin must explicitly
+	 * enable them. This prevents unexpected behavior changes on existing sites.
+	 *
+	 * @return array<string,mixed>
+	 */
+	public static function getDefaultProtectionSettings(): array {
+		return [
+			// Login Attempt Limiter
+			'attempt_limiter_enabled' => false,
+			'max_attempts'            => 5,
+			'window_minutes'          => 10,
+			'lockout_minutes'         => 15,
+
+			// Login Notification
+			'notify_enabled'          => false,
+			'notify_email'            => '',   // Falls back to admin_email when empty.
+			'notify_threshold'        => 5,    // Mirrors max_attempts by default.
+
+			// IP Access Control
+			'ip_access_enabled'       => false,
+			'ip_mode'                 => 'blocklist', // 'blocklist' | 'allowlist'
 		];
 	}
 

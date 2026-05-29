@@ -498,3 +498,196 @@
 	color: #d63638;
 	border-color: #d63638;
 }
+
+/* -------------------------------------------------------------------------
+   Tab navigation
+   ---------------------------------------------------------------------- */
+
+.penalis-tab-nav {
+	margin-bottom: 0;
+	border-bottom: 1px solid #c3c4c7;
+}
+
+.penalis-tab-content {
+	background: transparent;
+}
+
+/* -------------------------------------------------------------------------
+   Warning note variant (amber tint)
+   ---------------------------------------------------------------------- */
+
+.penalis-field-note-warning {
+	background: #fefbf0;
+	border-color: #dba617;
+	color: #996800;
+}
+
+/* -------------------------------------------------------------------------
+   Danger button
+   ---------------------------------------------------------------------- */
+
+.penalis-btn-danger {
+	color: #d63638;
+	border-color: #d63638;
+}
+
+.penalis-btn-danger:hover {
+	color: #fff;
+	background: #d63638;
+	border-color: #d63638;
+}
+
+/* -------------------------------------------------------------------------
+   IP address table
+   ---------------------------------------------------------------------- */
+
+.penalis-ip-table {
+	font-size: 13px;
+}
+
+.penalis-ip-table th {
+	font-weight: 600;
+	color: #1d2327;
+}
+
+.penalis-ip-table code {
+	font-size: 12px;
+}
+
+.penalis-add-ip-form {
+	margin-top: 4px;
+}
+
+/* -------------------------------------------------------------------------
+   Activity Log tab layout
+   ---------------------------------------------------------------------- */
+
+.penalis-activity-body {
+	margin-top: 16px;
+}
+
+.penalis-activity-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 12px;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.penalis-activity-header .description {
+	margin: 0;
+}
+
+.penalis-activity-empty {
+	padding: 32px 0;
+	text-align: center;
+	color: #646970;
+}
+
+/* -------------------------------------------------------------------------
+   Activity log table
+   ---------------------------------------------------------------------- */
+
+.penalis-activity-table {
+	font-size: 13px;
+	table-layout: fixed;
+	width: 100%;
+}
+
+.penalis-activity-table th:nth-child(1) { width: 160px; }
+.penalis-activity-table th:nth-child(2) { width: 160px; }
+.penalis-activity-table th:nth-child(3) { width: 140px; }
+.penalis-activity-table th:nth-child(4) { width: 130px; }
+.penalis-activity-table th:nth-child(5) { width: auto;  }
+
+.penalis-activity-date {
+	white-space: nowrap;
+	color: #50575e;
+	font-size: 12px;
+}
+
+.penalis-activity-ua {
+	color: #646970;
+	font-size: 12px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.penalis-muted {
+	color: #c3c4c7;
+}
+
+/* -------------------------------------------------------------------------
+   Event type badges
+   ---------------------------------------------------------------------- */
+
+.penalis-event-badge {
+	display: inline-block;
+	padding: 2px 8px;
+	font-size: 11px;
+	font-weight: 500;
+	border-radius: 10px;
+	line-height: 1.7;
+	white-space: nowrap;
+}
+
+.penalis-event-badge-login_success {
+	background: #edfaef;
+	color: #00a32a;
+	border: 1px solid #b8e6bf;
+}
+
+.penalis-event-badge-login_failed {
+	background: #fcf0f1;
+	color: #d63638;
+	border: 1px solid #f5c6c7;
+}
+
+.penalis-event-badge-login_blocked {
+	background: #fef8ee;
+	color: #996800;
+	border: 1px solid #f5d67a;
+}
+
+.penalis-event-badge-ip_blocked {
+	background: #f0f0f1;
+	color: #3c434a;
+	border: 1px solid #c3c4c7;
+}
+
+/* -------------------------------------------------------------------------
+   Pagination
+   ---------------------------------------------------------------------- */
+
+.penalis-pagination {
+	margin-top: 12px;
+}
+
+.penalis-pagination .tablenav-pages {
+	float: none;
+	text-align: left;
+}
+
+/* -------------------------------------------------------------------------
+   Section divider (between settings form and IP Lists section)
+   ---------------------------------------------------------------------- */
+
+.penalis-section-divider {
+	border: none;
+	border-top: 1px solid #c3c4c7;
+	margin: 24px 0;
+}
+
+/* -------------------------------------------------------------------------
+   IP textarea
+   ---------------------------------------------------------------------- */
+
+.penalis-ip-textarea {
+	font-family: Consolas, Monaco, 'Courier New', monospace;
+	font-size: 13px;
+	line-height: 1.6;
+	resize: vertical;
+	min-height: 120px;
+}

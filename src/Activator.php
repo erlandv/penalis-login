@@ -26,6 +26,7 @@ final class Activator {
 	 * Runs on plugin activation.
 	 *
 	 * - Seeds default settings if none exist yet.
+	 * - Creates custom database tables.
 	 * - Registers the custom login rewrite rule.
 	 * - Flushes rewrite rules so the new rule takes effect immediately.
 	 *
@@ -36,6 +37,10 @@ final class Activator {
 		if ( false === get_option( Helpers::OPTION_KEY ) ) {
 			add_option( Helpers::OPTION_KEY, Helpers::getDefaultSettings(), '', false );
 		}
+
+		// Create custom database tables (safe to call on every activation —
+		// dbDelta() only creates or alters, never drops data).
+		\PenalisLogin\Database\Schema::createTables();
 
 		// Register the rewrite rule so it exists before flushing.
 		$helpers = new Helpers();
