@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace PenalisLogin\Admin\Tabs;
 
 use PenalisLogin\Helpers;
-use PenalisLogin\RewriteHandler;
 
 /**
  * Class GeneralTab

@@ -239,7 +239,7 @@ final class SettingsPage {
 		$errors = [];
 		$output = [];
 
-		$output['enabled'] = isset( $input['enabled'] ) && '1' === (string) $input['enabled'];
+		$output['enabled'] = $this->checkboxValue( $input, 'enabled' );
 
 		// Slug.
 		$raw_slug   = isset( $input['login_slug'] ) ? (string) $input['login_slug'] : '';
@@ -262,7 +262,7 @@ final class SettingsPage {
 		$output['wp_admin_guest_behavior'] = in_array( $raw_wp, $allowed_wp, true ) ? $raw_wp : 'redirect_login';
 
 		// Delete on uninstall.
-		$delete = isset( $input['delete_on_uninstall'] ) && '1' === (string) $input['delete_on_uninstall'];
+		$delete = $this->checkboxValue( $input, 'delete_on_uninstall' );
 		update_option( Helpers::DELETE_ON_UNINSTALL_KEY, $delete, false );
 
 		return [ $output, $errors ];
@@ -277,20 +277,18 @@ final class SettingsPage {
 		$raw      = is_array( $input['protection'] ?? null ) ? $input['protection'] : [];
 
 		$protection = [
-			'attempt_limiter_enabled' => isset( $raw['attempt_limiter_enabled'] ) && '1' === (string) $raw['attempt_limiter_enabled'],
+			'attempt_limiter_enabled' => $this->checkboxValue( $raw, 'attempt_limiter_enabled' ),
 			'max_attempts'            => min( 100, max( 1, (int) ( $raw['max_attempts']    ?? $defaults['max_attempts'] ) ) ),
 			'window_minutes'          => min( 1440, max( 1, (int) ( $raw['window_minutes'] ?? $defaults['window_minutes'] ) ) ),
 			'lockout_minutes'         => min( 10080, max( 1, (int) ( $raw['lockout_minutes'] ?? $defaults['lockout_minutes'] ) ) ),
-			'notify_enabled'          => isset( $raw['notify_enabled'] ) && '1' === (string) $raw['notify_enabled'],
+			'notify_enabled'          => $this->checkboxValue( $raw, 'notify_enabled' ),
 			'notify_email'            => sanitize_email( (string) ( $raw['notify_email'] ?? '' ) ),
 			'notify_threshold'        => min( 100, max( 1, (int) ( $raw['notify_threshold'] ?? $defaults['notify_threshold'] ) ) ),
-			'ip_access_enabled'       => isset( $raw['ip_access_enabled'] ) && '1' === (string) $raw['ip_access_enabled'],
+			'ip_access_enabled'       => $this->checkboxValue( $raw, 'ip_access_enabled' ),
 			'ip_mode'                 => in_array( $raw['ip_mode'] ?? '', [ 'blocklist', 'allowlist' ], true )
 				? (string) $raw['ip_mode']
 				: 'blocklist',
-
-			// Trusted Proxies
-			'trusted_proxies_enabled' => isset( $raw['trusted_proxies_enabled'] ) && '1' === (string) $raw['trusted_proxies_enabled'],
+			'trusted_proxies_enabled' => $this->checkboxValue( $raw, 'trusted_proxies_enabled' ),
 			'trusted_proxies'         => sanitize_textarea_field( (string) ( $raw['trusted_proxies'] ?? '' ) ),
 		];
 
@@ -356,81 +354,104 @@ final class SettingsPage {
 		}
 
 		$active_tab = $this->getActiveTab();
-
-		// Retrieve save result from transient (set by handleSave after redirect).
-		$save_result = get_transient( 'penalis_login_save_result' );
-		if ( false !== $save_result ) {
-			delete_transient( 'penalis_login_save_result' );
-		}
 		?>
 		<div class="wrap penalis-login-settings">
-
 			<h1 class="penalis-login-title"><?php esc_html_e( 'Penalis Login', 'penalis-login' ); ?></h1>
-
 			<div id="penalis-login-notices">
-				<?php $this->renderSaveNotices( $save_result ); ?>
-				<?php $this->renderIpActionNotice(); ?>
+				<?php $this->renderNotices(); ?>
 			</div>
-
-			<nav class="nav-tab-wrapper penalis-tab-nav" aria-label="<?php esc_attr_e( 'Settings tabs', 'penalis-login' ); ?>">
-				<?php foreach ( [ 'general' => __( 'General', 'penalis-login' ), 'protection' => __( 'Protection', 'penalis-login' ), 'activity' => __( 'Activity Log', 'penalis-login' ) ] as $slug => $label ) : ?>
-					<a href="<?php echo esc_url( $this->tabUrl( $slug ) ); ?>" class="nav-tab <?php echo $slug === $active_tab ? 'nav-tab-active' : ''; ?>">
-						<?php echo esc_html( $label ); ?>
-					</a>
-				<?php endforeach; ?>
-			</nav>
-
+			<?php $this->renderTabNav( $active_tab ); ?>
 			<div class="penalis-tab-content">
-				<?php if ( 'activity' === $active_tab ) : ?>
-					<div class="penalis-login-body penalis-activity-body">
-						<div class="penalis-login-main">
-							<?php $this->activityTab->render(); ?>
-						</div>
-					</div>
-				<?php else : ?>
-					<div class="penalis-login-body">
-						<div class="penalis-login-main">
-							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-								<input type="hidden" name="action" value="penalis_login_save" />
-								<input type="hidden" name="_tab" value="<?php echo esc_attr( $active_tab ); ?>" />
-								<?php wp_nonce_field( self::NONCE_ACTION, self::NONCE_FIELD ); ?>
-
-								<?php if ( 'general' === $active_tab ) : ?>
-									<?php $this->generalTab->renderFields(); ?>
-								<?php else : ?>
-									<?php $this->protectionTab->renderFields(); ?>
-									<?php $this->protectionTab->renderIpSection(); ?>
-								<?php endif; ?>
-
-								<div class="penalis-form-actions">
-									<?php submit_button( __( 'Save Settings', 'penalis-login' ), 'primary', 'submit', false ); ?>
-									<button
-										type="submit"
-										name="<?php echo esc_attr( Helpers::OPTION_KEY ); ?>[_reset]"
-										value="1"
-										class="button button-secondary penalis-reset-button"
-										onclick="return confirm('<?php echo esc_js( 'general' === $active_tab ? __( 'Reset all settings to their defaults? This cannot be undone.', 'penalis-login' ) : __( 'Reset all Protection settings to their defaults and clear all IP lists? This cannot be undone.', 'penalis-login' ) ); ?>')"
-									><?php esc_html_e( 'Reset to Defaults', 'penalis-login' ); ?></button>
-								</div>
-							</form>
-
-							<?php
-							// IP lists are now rendered inside the form above via
-							// protectionTab->renderIpSection() — no standalone forms needed.
-							?>						</div>
-						<div class="penalis-login-sidebar">
-							<?php $this->renderSidebar( $active_tab ); ?>
-						</div>
-					</div>
-				<?php endif; ?>
+				<?php $this->renderTabContent( $active_tab ); ?>
 			</div>
-
 		</div>
 		<?php
 	}
 
+	/**
+	 * Renders save result and IP action notices.
+	 */
+	private function renderNotices(): void {
+		$save_result = get_transient( 'penalis_login_save_result' );
+		if ( false !== $save_result ) {
+			delete_transient( 'penalis_login_save_result' );
+			$this->renderSaveNotices( $save_result );
+		}
 
-	// -------------------------------------------------------------------------
+		$this->renderIpActionNotice();
+	}
+
+	/**
+	 * Renders the tab navigation bar.
+	 */
+	private function renderTabNav( string $active_tab ): void {
+		$tabs = [
+			'general'    => __( 'General', 'penalis-login' ),
+			'protection' => __( 'Protection', 'penalis-login' ),
+			'activity'   => __( 'Activity Log', 'penalis-login' ),
+		];
+		?>
+		<nav class="nav-tab-wrapper penalis-tab-nav" aria-label="<?php esc_attr_e( 'Settings tabs', 'penalis-login' ); ?>">
+			<?php foreach ( $tabs as $slug => $label ) : ?>
+				<a href="<?php echo esc_url( $this->tabUrl( $slug ) ); ?>" class="nav-tab <?php echo $slug === $active_tab ? 'nav-tab-active' : ''; ?>">
+					<?php echo esc_html( $label ); ?>
+				</a>
+			<?php endforeach; ?>
+		</nav>
+		<?php
+	}
+
+	/**
+	 * Renders the content area for the active tab.
+	 */
+	private function renderTabContent( string $active_tab ): void {
+		if ( 'activity' === $active_tab ) {
+			?>
+			<div class="penalis-login-body penalis-activity-body">
+				<div class="penalis-login-main">
+					<?php $this->activityTab->render(); ?>
+				</div>
+			</div>
+			<?php
+			return;
+		}
+
+		$reset_confirm = 'general' === $active_tab
+			? __( 'Reset all settings to their defaults? This cannot be undone.', 'penalis-login' )
+			: __( 'Reset all Protection settings to their defaults and clear all IP lists? This cannot be undone.', 'penalis-login' );
+		?>
+		<div class="penalis-login-body">
+			<div class="penalis-login-main">
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+					<input type="hidden" name="action" value="penalis_login_save" />
+					<input type="hidden" name="_tab" value="<?php echo esc_attr( $active_tab ); ?>" />
+					<?php wp_nonce_field( self::NONCE_ACTION, self::NONCE_FIELD ); ?>
+
+					<?php if ( 'general' === $active_tab ) : ?>
+						<?php $this->generalTab->renderFields(); ?>
+					<?php else : ?>
+						<?php $this->protectionTab->renderFields(); ?>
+						<?php $this->protectionTab->renderIpSection(); ?>
+					<?php endif; ?>
+
+					<div class="penalis-form-actions">
+						<?php submit_button( __( 'Save Settings', 'penalis-login' ), 'primary', 'submit', false ); ?>
+						<button
+							type="submit"
+							name="<?php echo esc_attr( Helpers::OPTION_KEY ); ?>[_reset]"
+							value="1"
+							class="button button-secondary penalis-reset-button"
+							onclick="return confirm('<?php echo esc_js( $reset_confirm ); ?>')"
+						><?php esc_html_e( 'Reset to Defaults', 'penalis-login' ); ?></button>
+					</div>
+				</form>
+			</div>
+			<div class="penalis-login-sidebar">
+				<?php $this->renderSidebar( $active_tab ); ?>
+			</div>
+		</div>
+		<?php
+	}	// -------------------------------------------------------------------------
 	// Notices
 	// -------------------------------------------------------------------------
 
@@ -527,11 +548,11 @@ final class SettingsPage {
 					<?php else : ?>
 						<tr>
 							<td><strong><?php esc_html_e( 'Block Behavior', 'penalis-login' ); ?></strong></td>
-							<td><?php echo esc_html( match ( $this->helpers->getBlockBehavior() ) { '403' => __( '403 Forbidden', 'penalis-login' ), 'redirect_home' => __( 'Redirect to homepage', 'penalis-login' ), default => __( '404 Not Found', 'penalis-login' ) } ); ?></td>
+							<td><?php echo esc_html( $this->getBlockBehaviorLabel() ); ?></td>
 						</tr>
 						<tr>
 							<td><strong><?php esc_html_e( 'Guest /wp-admin/', 'penalis-login' ); ?></strong></td>
-							<td><?php echo esc_html( match ( $this->helpers->getWpAdminGuestBehavior() ) { 'redirect_home' => __( 'Redirect to homepage', 'penalis-login' ), '404' => __( '404 Not Found', 'penalis-login' ), '403' => __( '403 Forbidden', 'penalis-login' ), default => __( 'Redirect to login', 'penalis-login' ) } ); ?></td>
+							<td><?php echo esc_html( $this->getWpAdminGuestBehaviorLabel() ); ?></td>
 						</tr>
 					<?php endif; ?>
 					<tr>
@@ -584,6 +605,37 @@ final class SettingsPage {
 	// -------------------------------------------------------------------------
 	// Helpers
 	// -------------------------------------------------------------------------
+
+	/**
+	 * Returns the boolean value of a checkbox field from a POST input array.
+	 *
+	 * HTML checkboxes submit '1' when checked and nothing when unchecked.
+	 * This helper centralises that pattern instead of repeating it inline.
+	 *
+	 * @param  array<string,mixed> $input The input array to read from.
+	 * @param  string              $key   The field key to check.
+	 * @return bool
+	 */
+	private function checkboxValue( array $input, string $key ): bool {
+		return isset( $input[ $key ] ) && '1' === (string) $input[ $key ];
+	}
+
+	private function getBlockBehaviorLabel(): string {
+		return match ( $this->helpers->getBlockBehavior() ) {
+			'403'           => __( '403 Forbidden', 'penalis-login' ),
+			'redirect_home' => __( 'Redirect to homepage', 'penalis-login' ),
+			default         => __( '404 Not Found', 'penalis-login' ),
+		};
+	}
+
+	private function getWpAdminGuestBehaviorLabel(): string {
+		return match ( $this->helpers->getWpAdminGuestBehavior() ) {
+			'redirect_home' => __( 'Redirect to homepage', 'penalis-login' ),
+			'404'           => __( '404 Not Found', 'penalis-login' ),
+			'403'           => __( '403 Forbidden', 'penalis-login' ),
+			default         => __( 'Redirect to login', 'penalis-login' ),
+		};
+	}
 
 	private function getActiveTab(): string {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
