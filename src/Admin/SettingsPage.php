@@ -158,19 +158,21 @@ final class SettingsPage {
 		$this->ipRepo->sync(
 			\PenalisLogin\Database\IpRulesRepository::TYPE_ALLOW,
 			$this->parseIpTextarea( $raw_allowlist )
-		);
-	}
+		);	}
 
 	/**
-	 * Parses a textarea value into an array of valid IP addresses.
+	 * Parses a textarea value into an array of [ip => comment] pairs.
 	 *
 	 * - Splits on newlines.
 	 * - Trims whitespace from each line.
-	 * - Skips empty lines and lines starting with '#' (comments).
-	 * - Skips lines that are not valid IPv4 or IPv6 addresses.
+	 * - Skips empty lines and lines starting with '#'.
+	 * - Extracts inline comment after '#' as the label.
+	 * - Skips lines whose IP portion is not a valid IPv4/IPv6 address.
+	 *
+	 * Returns an associative array: [ 'ip_address' => 'comment' ]
 	 *
 	 * @param  string $raw Raw textarea content.
-	 * @return string[]    Array of valid IP address strings.
+	 * @return array<string, string>
 	 */
 	private function parseIpTextarea( string $raw ): array {
 		$lines  = preg_split( '/\r\n|\r|\n/', $raw ) ?: [];
@@ -179,18 +181,22 @@ final class SettingsPage {
 		foreach ( $lines as $line ) {
 			$line = trim( $line );
 
-			// Skip empty lines and comment lines.
+			// Skip empty lines and full-line comments.
 			if ( '' === $line || str_starts_with( $line, '#' ) ) {
 				continue;
 			}
 
-			// Strip inline comments (e.g. "192.168.1.1 # office").
+			$comment = '';
+
+			// Split on '#' to separate IP from inline comment.
 			if ( str_contains( $line, '#' ) ) {
-				$line = trim( explode( '#', $line, 2 )[0] );
+				[ $ip_part, $comment_part ] = explode( '#', $line, 2 );
+				$line    = trim( $ip_part );
+				$comment = trim( $comment_part );
 			}
 
-			if ( filter_var( $line, FILTER_VALIDATE_IP ) ) {
-				$result[] = $line;
+			if ( '' !== $line && filter_var( $line, FILTER_VALIDATE_IP ) ) {
+				$result[ $line ] = $comment;
 			}
 		}
 

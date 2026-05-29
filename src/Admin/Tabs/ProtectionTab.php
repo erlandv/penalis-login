@@ -101,7 +101,7 @@ final class ProtectionTab {
 						spellcheck="false"
 					><?php echo esc_textarea( implode( "\n", $blocklist ) ); ?></textarea>
 					<p class="description">
-						<?php esc_html_e( 'One IP address per line. These IPs will be denied access to the login page.', 'penalis-login' ); ?>
+						<?php esc_html_e( 'One IP address per line. Inline comments are supported: 192.168.1.1 # office router. These IPs will be denied access to the login page.', 'penalis-login' ); ?>
 					</p>
 				</td>
 			</tr>
@@ -119,7 +119,7 @@ final class ProtectionTab {
 						spellcheck="false"
 					><?php echo esc_textarea( implode( "\n", $allowlist ) ); ?></textarea>
 					<p class="description">
-						<?php esc_html_e( 'One IP address per line. Only these IPs will be allowed when Allowlist mode is active.', 'penalis-login' ); ?>
+						<?php esc_html_e( 'One IP address per line. Inline comments are supported: 192.168.1.100 # my office. Only these IPs will be allowed when Allowlist mode is active.', 'penalis-login' ); ?>
 					</p>
 					<?php if ( empty( $allowlist ) && 'allowlist' === (string) $this->getProtectionSetting( 'ip_mode' ) ) : ?>
 						<div class="penalis-field-note penalis-field-note-warning" style="margin-top:8px; max-width:680px;">

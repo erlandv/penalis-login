@@ -82,16 +82,13 @@ final class IpRulesRepository {
 	}
 
 	/**
-	 * Replaces all IP rules of a given type with a new set of addresses.
+	 * Replaces all IP rules of a given type with a new set.
 	 *
-	 * This is the "textarea save" operation: delete everything of that type,
-	 * then insert the new list. Runs inside a transaction where supported.
-	 *
-	 * @param  string   $rule_type   One of the TYPE_* constants.
-	 * @param  string[] $ip_addresses Validated IP addresses to store.
+	 * @param  string               $rule_type    One of the TYPE_* constants.
+	 * @param  array<string,string> $ip_map       Associative array of [ip_address => comment].
 	 * @return void
 	 */
-	public function sync( string $rule_type, array $ip_addresses ): void {
+	public function sync( string $rule_type, array $ip_map ): void {
 		global $wpdb;
 
 		$table = Schema::ipRulesTable();
@@ -102,8 +99,8 @@ final class IpRulesRepository {
 		$wpdb->delete( Schema::ipRulesTable(), [ 'rule_type' => $rule_type ], [ '%s' ] );
 
 		// Insert the new set.
-		foreach ( array_unique( $ip_addresses ) as $ip ) {
-			$ip = trim( $ip );
+		foreach ( $ip_map as $ip => $comment ) {
+			$ip = trim( (string) $ip );
 			if ( '' === $ip || ! filter_var( $ip, FILTER_VALIDATE_IP ) ) {
 				continue;
 			}
@@ -114,7 +111,7 @@ final class IpRulesRepository {
 				[
 					'rule_type'  => $rule_type,
 					'ip_address' => substr( $ip, 0, 45 ),
-					'label'      => '',
+					'label'      => substr( trim( (string) $comment ), 0, 100 ),
 					'created_at' => $now,
 				],
 				[ '%s', '%s', '%s', '%s' ]
@@ -150,9 +147,10 @@ final class IpRulesRepository {
 	}
 
 	/**
-	 * Returns all IP addresses of a given type as a plain string array.
+	 * Returns all IP entries of a given type formatted for textarea display.
 	 *
-	 * Used to populate the textarea UI — one IP per line.
+	 * Each entry is returned as "ip_address" or "ip_address # comment"
+	 * (when a label exists), ready to be joined with newlines.
 	 *
 	 * @param  string $rule_type One of the TYPE_* constants.
 	 * @return string[]
@@ -163,15 +161,28 @@ final class IpRulesRepository {
 		$table = Schema::ipRulesTable();
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$results = $wpdb->get_col(
+		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				"SELECT ip_address FROM {$table} WHERE rule_type = %s ORDER BY ip_address ASC",
+				"SELECT ip_address, label FROM {$table} WHERE rule_type = %s ORDER BY ip_address ASC",
 				$rule_type
 			)
 		);
 
-		return is_array( $results ) ? $results : [];
+		if ( ! is_array( $rows ) ) {
+			return [];
+		}
+
+		return array_map(
+			static function ( object $row ): string {
+				$line = $row->ip_address;
+				if ( '' !== trim( $row->label ) ) {
+					$line .= ' # ' . $row->label;
+				}
+				return $line;
+			},
+			$rows
+		);
 	}
 
 	/**
