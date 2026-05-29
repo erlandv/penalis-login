@@ -1,29 +1,42 @@
 === Penalis Login ===
 Contributors: penalis
-Tags: login, security, custom login url, hide login, wp-login
+Tags: login, security, custom login url, hide login, brute force
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 1.1.0
+Stable tag: 2.0.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Hides and customizes the default WordPress login URL for enhanced security.
+Hides the default WordPress login URL and adds optional security features to protect against brute force attacks.
 
 == Description ==
 
-Penalis Login replaces the default WordPress login URL (`/wp-login.php`) with a custom slug of your choice. Direct access to `/wp-login.php` is blocked with a configurable response (404, 403, or redirect). Guest access to `/wp-admin/` is also configurable — by default it redirects to the custom login URL, but can be set to return 404, 403, or redirect to the homepage instead.
+Penalis Login replaces the default WordPress login URL (`/wp-login.php`) with a custom slug of your choice. Direct access to `/wp-login.php` is blocked with a configurable response (404, 403, or redirect). Guest access to `/wp-admin/` is also configurable.
 
-**Features:**
+The plugin is organized into three tabs:
+
+**General** — always active:
 
 * Custom login slug (default: `/login/`)
-* Blocks direct access to `/wp-login.php` with configurable behavior (404, 403, or redirect)
+* Blocks direct access to `/wp-login.php` (404, 403, or redirect to homepage)
 * Configurable guest access behavior for `/wp-admin/` (redirect to login, redirect to homepage, 404, or 403)
 * Filters all WordPress-generated login/logout/lost-password/register URLs
 * Anti-lockout: logged-in administrators can always access `/wp-login.php` and `/wp-admin/` directly
-* Compatible with WooCommerce, REST API, XML-RPC, and admin-ajax
-* Settings page under Settings → Penalis Login
-* Reset to Defaults button to restore all settings in one click
+* Compatible with WooCommerce, REST API, XML-RPC, admin-ajax, and application passwords
+
+**Protection** — optional, all features disabled by default:
+
+* Login Attempt Limiter — rate limits failed login attempts per IP and username; locks out offending IPs temporarily (HTTP 429)
+* Login Notification — sends an email alert when suspicious activity is detected from a single IP
+* IP Access Control — blocklist specific IPs, or restrict access to an allowlist of trusted IPs only
+* Trusted Proxies — configure trusted reverse proxy IPs (Cloudflare, Nginx) so security features use the real visitor IP
+
+**Activity Log** — always active:
+
+* Records every login attempt (success, failure, blocked by rate limit, blocked by IP rule)
+* Stores IP address, username, user agent, and timestamp
+* Viewable in the Activity Log tab with pagination and one-click log clearing
 
 == Installation ==
 
@@ -45,15 +58,35 @@ Logged-in administrators can always access `/wp-login.php` and `/wp-admin/` dire
 
 Yes. The plugin does not interfere with WooCommerce's My Account login form or its authentication flows.
 
+= Can an attacker bypass rate limiting by forging IP headers? =
+
+Not by default. The plugin only reads `REMOTE_ADDR` (which cannot be spoofed) unless you explicitly configure trusted proxy IPs in the Protection tab. Proxy headers are only trusted when the actual connecting IP matches a listed trusted proxy.
+
+= Does the plugin create database tables? =
+
+Yes. Two custom tables are created on activation: one for the login activity log and one for IP rules. They are removed when the plugin is deleted if the "Delete Plugin Data" setting is enabled.
+
 == Changelog ==
+
+= 2.0.0 =
+* New: Login Attempt Limiter — rate limits failed login attempts per IP and username with configurable thresholds and lockout duration. Locked-out IPs receive HTTP 429 and cannot access the login page until the lockout expires.
+* New: Login Notification — sends an email alert to the admin when a configurable number of failed attempts is detected from a single IP within the time window.
+* New: IP Access Control — blocklist specific IPs from the login page, or switch to allowlist mode to restrict access to trusted IPs only. IP lists support inline comments (`192.168.1.1 # office`).
+* New: Trusted Proxies — configure trusted reverse proxy IPs so rate limiting and IP access control use the real visitor IP instead of the proxy IP. Proxy headers are only trusted when `REMOTE_ADDR` matches a listed proxy, preventing IP spoofing attacks.
+* New: Activity Log — records every login event (success, failure, blocked by rate limit, blocked by IP rule) with IP address, username, user agent, and timestamp. Viewable in a dedicated tab with pagination and log clearing.
+* New: Settings page redesigned with three tabs — General, Protection, and Activity Log.
+* New: Reset to Defaults button on both General and Protection tabs.
+* New: Custom database tables for activity log and IP rules, created automatically on activation.
+* Fix: Locked-out IPs now see HTTP 429 immediately when accessing the login page, not just on form submission.
+* Fix: IP spoofing prevention — proxy headers are only trusted when explicitly configured via Trusted Proxies settings.
+* Fix: All plugin transients (including lockout entries) are now cleaned up on uninstall.
 
 = 1.1.0 =
 * New: Added configurable guest access behavior for `/wp-admin/` — choose between redirect to custom login URL, redirect to homepage, 404 Not Found (stealth mode), or 403 Forbidden.
-* New: Added "Reset to Defaults" button on the settings page to restore all settings in one click.
-* New: Settings page UI redesigned — Block Behavior now uses horizontal option cards, Guest /wp-admin/ behavior uses a vertical list with descriptions.
-* Fix: REST endpoint (`/wp-json/penalis-login/v1/is-login-slug`) is now registered even when the plugin is disabled, preventing silent failures in Nginx `auth_request` configurations.
-* Fix: Password reset keys are now validated against the database before allowing access to `/wp-login.php`, preventing slug exposure via invalid reset links.
-* Fix: The "delete on uninstall" option is now saved via a dedicated hook instead of inside the sanitize callback, preventing double-write side effects.
+* New: Added "Reset to Defaults" button on the settings page.
+* New: Settings page UI redesigned with option cards and behavior lists.
+* Fix: REST endpoint is now registered even when the plugin is disabled, preventing silent failures in Nginx `auth_request` configurations.
+* Fix: Password reset keys are now validated against the database before allowing access to `/wp-login.php`.
 
 = 1.0.0 =
 * Initial release.
