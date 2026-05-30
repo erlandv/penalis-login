@@ -424,16 +424,27 @@ final class SettingsPage {
 			?>
 			<div class="penalis-login-body penalis-activity-body">
 				<div class="penalis-login-main">
+
+					<?php
+					// The activity header (record count + Clear Log button) and the
+					// log table are rendered OUTSIDE the settings form because
+					// renderClearLogForm() contains its own <form> for the clear action.
+					// HTML forbids nested forms — the Clear Log form must be standalone.
+					$this->activityTab->renderHeader();
+					$this->activityTab->render();
+
+					// Settings form — only contains the retention field and Save button.
+					?>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 						<input type="hidden" name="action" value="penalis_login_save" />
 						<input type="hidden" name="_tab" value="activity" />
 						<?php wp_nonce_field( self::NONCE_ACTION, self::NONCE_FIELD ); ?>
-						<?php $this->activityTab->render(); ?>
 						<?php $this->activityTab->renderRetentionSettings(); ?>
-						<div class="penalis-form-actions" style="margin-top:16px;">
+						<div class="penalis-form-actions">
 							<?php submit_button( __( 'Save Settings', 'penalis-login' ), 'primary', 'submit', false ); ?>
 						</div>
 					</form>
+
 				</div>
 			</div>
 			<?php

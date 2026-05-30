@@ -43,19 +43,18 @@ final class ActivityTab {
 	 *
 	 * @return void
 	 */
-	public function render(): void {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$current_page    = isset( $_GET['paged'] ) ? max( 1, (int) $_GET['paged'] ) : 1;
-		$retention_days  = $this->helpers->getLogRetentionDays();
-
-		$total       = $this->repository->getTotal();
-		$records     = $this->repository->getPaginated( self::PER_PAGE, $current_page );
-		$total_pages = (int) ceil( $total / self::PER_PAGE );
+	/**
+	 * Renders the activity header: heading, record count, and Clear Log button.
+	 *
+	 * The Clear Log button is a standalone <form> — call this method OUTSIDE
+	 * the settings <form> to avoid nested forms.
+	 *
+	 * @return void
+	 */
+	public function renderHeader(): void {
+		$total = $this->repository->getTotal();
 		?>
-
-		<!-- Activity Records — displayed first, above settings -->
 		<h2><?php esc_html_e( 'Activity Records', 'penalis-login' ); ?></h2>
-		
 		<div class="penalis-activity-header">
 			<p class="description">
 				<?php
@@ -66,22 +65,27 @@ final class ActivityTab {
 				);
 				?>
 			</p>
-
-			<?php if ( $total > 0 ) : ?>
-				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline;">
-					<?php wp_nonce_field( 'penalis_clear_activity_log', 'penalis_activity_nonce' ); ?>
-					<input type="hidden" name="action" value="penalis_clear_activity_log" />
-					<button
-						type="submit"
-						class="button button-secondary penalis-btn-danger"
-						onclick="return confirm('<?php echo esc_js( __( 'Clear all activity log records? This cannot be undone.', 'penalis-login' ) ); ?>')"
-					>
-						<?php esc_html_e( 'Clear Log', 'penalis-login' ); ?>
-					</button>
-				</form>
-			<?php endif; ?>
+			<?php $this->renderClearLogForm(); ?>
 		</div>
+		<?php
+	}
 
+	/**
+	 * Renders the activity log table and pagination only.
+	 *
+	 * Does not contain any <form> elements — safe to call inside or outside
+	 * a settings form.
+	 *
+	 * @return void
+	 */
+	public function render(): void {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$current_page = isset( $_GET['paged'] ) ? max( 1, (int) $_GET['paged'] ) : 1;
+
+		$total       = $this->repository->getTotal();
+		$records     = $this->repository->getPaginated( self::PER_PAGE, $current_page );
+		$total_pages = (int) ceil( $total / self::PER_PAGE );
+		?>
 		<?php if ( empty( $records ) ) : ?>
 			<div class="penalis-activity-empty">
 				<p><?php esc_html_e( 'No login activity recorded yet. Activity will appear here once users start logging in.', 'penalis-login' ); ?></p>
@@ -178,9 +182,42 @@ final class ActivityTab {
 	}
 
 	// -------------------------------------------------------------------------
-	// Retention settings (rendered below the log table)
+	// Clear Log form (standalone — must be outside the settings <form>)
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Renders the Clear Log button as a standalone form.
+	 *
+	 * Called by SettingsPage OUTSIDE the settings <form> to avoid nested forms.
+	 * HTML does not allow nested forms — browsers would merge all fields into
+	 * the outer form, causing the Save Settings button to submit the wrong action.
+	 *
+	 * @return void
+	 */
+	public function renderClearLogForm(): void {
+		$total = $this->repository->getTotal();
+
+		if ( $total <= 0 ) {
+			return;
+		}
+		?>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline;">
+			<?php wp_nonce_field( 'penalis_clear_activity_log', 'penalis_activity_nonce' ); ?>
+			<input type="hidden" name="action" value="penalis_clear_activity_log" />
+			<button
+				type="submit"
+				class="button button-secondary penalis-btn-danger"
+				onclick="return confirm('<?php echo esc_js( __( 'Clear all activity log records? This cannot be undone.', 'penalis-login' ) ); ?>')"
+			>
+				<?php esc_html_e( 'Clear Log', 'penalis-login' ); ?>
+			</button>
+		</form>
+		<?php
+	}
+
+	// -------------------------------------------------------------------------
+	// Retention settings (rendered below the log table)
+	// -------------------------------------------------------------------------
 	/**
 	 * Renders the Log Settings section with the retention field.
 	 *
