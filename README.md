@@ -22,8 +22,9 @@ This plugin was originally developed for internal use at [Penalis](https://penal
 - **Trusted Proxies** — configure trusted reverse proxy IPs (Cloudflare, Nginx) so security features use the real visitor IP instead of the proxy IP
 
 ### Activity Log (always active)
-- Records every login attempt (success, failure, blocked by rate limit, blocked by IP rule) with IP address, username, user agent, and timestamp
+- Records every login attempt (success, failure, blocked by rate limit, blocked by IP rule) with IP address, username, HTTP method, referrer, user agent, and timestamp
 - Viewable in the **Activity Log** tab; supports pagination and one-click log clearing
+- Configurable log retention — automatically prune records older than N days via daily cron (0 = keep forever, default: 30 days)
 
 ## Requirements
 
@@ -52,6 +53,7 @@ penalis-login/
 │   ├── UrlFilter.php               # login_url / logout_url / etc. filters
 │   ├── SecurityHandler.php         # Block wp-login.php, anti-lockout
 │   ├── ActivityLogger.php          # Login event recorder
+│   ├── ActivityPruner.php          # Daily cron job for log retention
 │   ├── LoginAttemptLimiter.php     # Rate limiting / lockout enforcement
 │   ├── LoginNotifier.php           # Email alert dispatcher
 │   ├── IpAccessControl.php         # IP blocklist / allowlist enforcement
@@ -134,7 +136,7 @@ When enabled, `CF-Connecting-IP`, `X-Real-IP`, and `X-Forwarded-For` headers are
 
 ### Activity Log Tab
 
-Read-only view of all recorded login events. Columns: Date/Time, Event, Username, IP Address, User Agent. Supports pagination (50 records per page) and a "Clear Log" button.
+Read-only view of all recorded login events. Columns: Date/Time, Event, Username, IP Address, Method, Referrer, User Agent. Supports pagination (50 records per page) and a "Clear Log" button.
 
 ![Activity Log Tab](.github/screenshots/penalis-login-activity-log.png)
 
@@ -143,6 +145,14 @@ Event types:
 - **Login Failed** — wrong password or unknown username
 - **Blocked (Rate Limit)** — request blocked by the Login Attempt Limiter
 - **Blocked (IP Rule)** — request blocked by IP Access Control
+
+#### Log Settings
+
+| Setting | Description | Default |
+|---|---|---|
+| Log Retention | Delete records older than this many days (0 = keep forever) | 30 days |
+
+Records are pruned automatically once per day via WordPress cron.
 
 ## Architecture Notes
 
