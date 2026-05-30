@@ -4,7 +4,7 @@ Tags: login, security, custom login url, hide login, brute force
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 2.0.0
+Stable tag: 2.1.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -35,8 +35,9 @@ The plugin is organized into three tabs:
 **Activity Log** — always active:
 
 * Records every login attempt (success, failure, blocked by rate limit, blocked by IP rule)
-* Stores IP address, username, user agent, and timestamp
+* Stores IP address, username, HTTP method, referrer, user agent, and timestamp
 * Viewable in the Activity Log tab with pagination and one-click log clearing
+* Configurable log retention — automatically prune records older than N days via daily cron (0 = keep forever)
 
 == Installation ==
 
@@ -67,6 +68,12 @@ Not by default. The plugin only reads `REMOTE_ADDR` (which cannot be spoofed) un
 Yes. Two custom tables are created on activation: one for the login activity log and one for IP rules. They are removed when the plugin is deleted if the "Delete Plugin Data" setting is enabled.
 
 == Changelog ==
+
+= 2.1.0 =
+* New: Activity log now records HTTP method (GET/POST) and referrer for each login event, making it easier to distinguish browser logins from bot probes.
+* New: Log Retention setting in the Activity Log tab — automatically delete records older than a configurable number of days via daily WordPress cron. Set to 0 to keep records forever (default: 30 days).
+* Fix: Blocked login attempts are now correctly logged to the activity log when an IP is locked out at the page level (HTTP 429), including the username from the submitted form if available.
+* Fix: Save Settings button in the Activity Log tab was unresponsive due to a nested HTML form conflict with the Clear Log button. Both forms are now properly separated.
 
 = 2.0.0 =
 * New: Login Attempt Limiter — rate limits failed login attempts per IP and username with configurable thresholds and lockout duration. Locked-out IPs receive HTTP 429 and cannot access the login page until the lockout expires.
