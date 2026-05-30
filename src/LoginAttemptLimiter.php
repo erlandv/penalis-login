@@ -100,6 +100,13 @@ final class LoginAttemptLimiter {
 			return;
 		}
 
+		// Log the blocked attempt before terminating the request.
+		// We read the username from POST if available — the form was submitted
+		// but we are intercepting it before WordPress processes it.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$username = isset( $_POST['log'] ) ? sanitize_user( wp_unslash( $_POST['log'] ) ) : '';
+		$this->logger->logBlocked( $username, $ip );
+
 		status_header( 429 );
 		nocache_headers();
 
@@ -153,32 +160,27 @@ final class LoginAttemptLimiter {
 		string $username,
 		string $password
 	): \WP_User|\WP_Error|null {
-		$ip       = $this->ipResolver->resolveForSecurity();
-		$settings = $this->helpers->getProtectionSettings();
-		$max      = (int) $settings['max_attempts'];
-		$window   = (int) $settings['window_minutes'] * 60;
+		$ip = $this->ipResolver->resolveForSecurity();
 
-		// Check transient lockout first (fast path — set after threshold is hit).
-		$ip_locked   = $this->isIpLockedOut( $ip );
-		$user_locked = '' !== $username && $this->isUserLockedOut( $username );
-
-		// Fallback: if no transient yet, count directly from DB.
-		// This handles the case where the threshold is hit on this exact
-		// request — the transient won't exist yet but the DB count will.
-		if ( ! $ip_locked ) {
-			$ip_locked = $this->repository->countRecentFailures( $ip, $window ) >= $max;
-		}
-
-		if ( ! $user_locked && '' !== $username ) {
-			$user_locked = $this->repository->countRecentFailuresByUsername( $username, $window ) >= $max;
-		}
-
-		if ( $ip_locked ) {
+		// Fast path: check transient lockout only.
+		//
+		// We intentionally do NOT fall back to a DB count here. The transient
+		// is the authoritative lockout signal — it is set by onLoginFailed()
+		// once the threshold is reached. If no transient exists, the threshold
+		// has not been reached yet on a previous request, so this request
+		// should be allowed through normally.
+		//
+		// The DB-count fallback that existed previously was a workaround for
+		// a race condition that no longer exists: onLoginFailed() now counts
+		// from the DB (which already includes the current failure recorded by
+		// ActivityLogger at priority 10) and sets the transient immediately.
+		// The next request will find the transient and be blocked.
+		if ( $this->isIpLockedOut( $ip ) ) {
 			$this->logger->logBlocked( $username, $ip );
 			return new \WP_Error( 'penalis_ip_locked', $this->getLockoutMessage() );
 		}
 
-		if ( $user_locked ) {
+		if ( '' !== $username && $this->isUserLockedOut( $username ) ) {
 			$this->logger->logBlocked( $username, $ip );
 			return new \WP_Error( 'penalis_user_locked', $this->getLockoutMessage() );
 		}
