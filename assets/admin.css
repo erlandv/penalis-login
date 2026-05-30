@@ -564,16 +564,31 @@
 	width: 100%;
 }
 
-.penalis-activity-table th:nth-child(1) { width: 160px; }
-.penalis-activity-table th:nth-child(2) { width: 160px; }
-.penalis-activity-table th:nth-child(3) { width: 140px; }
-.penalis-activity-table th:nth-child(4) { width: 130px; }
-.penalis-activity-table th:nth-child(5) { width: auto;  }
+.penalis-activity-table th:nth-child(1) { width: 130px; } /* Date / Time */
+.penalis-activity-table th:nth-child(2) { width: 150px; } /* Event */
+.penalis-activity-table th:nth-child(3) { width: 110px; } /* Username */
+.penalis-activity-table th:nth-child(4) { width: 110px; } /* IP Address */
+.penalis-activity-table th:nth-child(5) { width: 60px;  } /* Method */
+.penalis-activity-table th:nth-child(6) { width: auto;  } /* Referrer */
+.penalis-activity-table th:nth-child(7) { width: auto;  } /* User Agent */
 
 .penalis-activity-date {
 	white-space: nowrap;
 	color: #50575e;
 	font-size: 12px;
+}
+
+.penalis-activity-method {
+	text-align: center;
+	font-size: 12px;
+}
+
+.penalis-activity-referrer {
+	color: #646970;
+	font-size: 12px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .penalis-activity-ua {

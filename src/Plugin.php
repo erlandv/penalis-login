@@ -207,7 +207,7 @@ final class Plugin {
 	private const DB_VERSION_OPTION = 'penalis_login_db_version';
 
 	/** Current schema version — bump this when table structure changes. */
-	private const DB_VERSION = '1.0';
+	private const DB_VERSION = '1.1';
 
 	/**
 	 * Creates the custom tables if they are missing or the schema version

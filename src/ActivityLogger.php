@@ -60,7 +60,9 @@ final class ActivityLogger {
 			ActivityRepository::EVENT_LOGIN_SUCCESS,
 			$user_login,
 			$this->ipResolver->resolveForLogging(),
-			$this->getUserAgent()
+			$this->getUserAgent(),
+			$this->getHttpMethod(),
+			$this->getReferrer()
 		);
 	}
 
@@ -69,7 +71,9 @@ final class ActivityLogger {
 			ActivityRepository::EVENT_LOGIN_FAILED,
 			$username,
 			$this->ipResolver->resolveForLogging(),
-			$this->getUserAgent()
+			$this->getUserAgent(),
+			$this->getHttpMethod(),
+			$this->getReferrer()
 		);
 	}
 
@@ -89,7 +93,9 @@ final class ActivityLogger {
 			ActivityRepository::EVENT_LOGIN_BLOCKED,
 			$username,
 			$ip_address,
-			$this->getUserAgent()
+			$this->getUserAgent(),
+			$this->getHttpMethod(),
+			$this->getReferrer()
 		);
 	}
 
@@ -98,7 +104,9 @@ final class ActivityLogger {
 			ActivityRepository::EVENT_IP_BLOCKED,
 			'',
 			$ip_address,
-			$this->getUserAgent()
+			$this->getUserAgent(),
+			$this->getHttpMethod(),
+			$this->getReferrer()
 		);
 	}
 
@@ -113,5 +121,21 @@ final class ActivityLogger {
 			: '';
 
 		return sanitize_text_field( (string) $ua );
+	}
+
+	private function getHttpMethod(): string {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		return isset( $_SERVER['REQUEST_METHOD'] )
+			? strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) )
+			: '';
+	}
+
+	private function getReferrer(): string {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		$referrer = isset( $_SERVER['HTTP_REFERER'] )
+			? sanitize_text_field( wp_unslash( $_SERVER['HTTP_REFERER'] ) )
+			: '';
+
+		return $referrer;
 	}
 }

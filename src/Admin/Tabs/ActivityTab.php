@@ -94,6 +94,8 @@ final class ActivityTab {
 						<th><?php esc_html_e( 'Event', 'penalis-login' ); ?></th>
 						<th><?php esc_html_e( 'Username', 'penalis-login' ); ?></th>
 						<th><?php esc_html_e( 'IP Address', 'penalis-login' ); ?></th>
+						<th><?php esc_html_e( 'Method', 'penalis-login' ); ?></th>
+						<th><?php esc_html_e( 'Referrer', 'penalis-login' ); ?></th>
 						<th><?php esc_html_e( 'User Agent', 'penalis-login' ); ?></th>
 					</tr>
 				</thead>
@@ -112,6 +114,27 @@ final class ActivityTab {
 								<?php echo '' !== $record->username ? esc_html( $record->username ) : '<span class="penalis-muted">—</span>'; ?>
 							</td>
 							<td><code><?php echo esc_html( $record->ip_address ); ?></code></td>
+							<td class="penalis-activity-method">
+								<?php if ( '' !== ( $record->http_method ?? '' ) ) : ?>
+									<code><?php echo esc_html( $record->http_method ); ?></code>
+								<?php else : ?>
+									<span class="penalis-muted">—</span>
+								<?php endif; ?>
+							</td>
+							<td class="penalis-activity-referrer">
+								<?php
+								$referrer = $record->referrer ?? '';
+								if ( '' === $referrer ) {
+									echo '<span class="penalis-muted">' . esc_html__( 'Direct', 'penalis-login' ) . '</span>';
+								} else {
+									printf(
+										'<span title="%s">%s</span>',
+										esc_attr( $referrer ),
+										esc_html( $this->truncateReferrer( $referrer ) )
+									);
+								}
+								?>
+							</td>
 							<td class="penalis-activity-ua">
 								<span title="<?php echo esc_attr( $record->user_agent ); ?>">
 									<?php echo esc_html( $this->truncateUa( $record->user_agent ) ); ?>
@@ -256,5 +279,13 @@ final class ActivityTab {
 		}
 
 		return mb_substr( $ua, 0, 57 ) . '…';
+	}
+
+	private function truncateReferrer( string $referrer ): string {
+		if ( mb_strlen( $referrer ) <= 60 ) {
+			return $referrer;
+		}
+
+		return mb_substr( $referrer, 0, 57 ) . '…';
 	}
 }

@@ -84,12 +84,14 @@ final class Schema {
 
 		$sql = "
 CREATE TABLE {$activity} (
-  id          BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-  event_type  VARCHAR(20)  NOT NULL DEFAULT 'login_failed',
-  username    VARCHAR(60)  NOT NULL DEFAULT '',
-  ip_address  VARCHAR(45)  NOT NULL DEFAULT '',
-  user_agent  VARCHAR(255) NOT NULL DEFAULT '',
-  occurred_at DATETIME     NOT NULL,
+  id           BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  event_type   VARCHAR(20)  NOT NULL DEFAULT 'login_failed',
+  username     VARCHAR(60)  NOT NULL DEFAULT '',
+  ip_address   VARCHAR(45)  NOT NULL DEFAULT '',
+  http_method  VARCHAR(10)  NOT NULL DEFAULT '',
+  referrer     VARCHAR(255) NOT NULL DEFAULT '',
+  user_agent   VARCHAR(255) NOT NULL DEFAULT '',
+  occurred_at  DATETIME     NOT NULL,
   PRIMARY KEY (id),
   KEY idx_event_type  (event_type),
   KEY idx_ip_address  (ip_address),

@@ -42,17 +42,21 @@ final class ActivityRepository {
 	/**
 	 * Inserts a new activity record.
 	 *
-	 * @param  string $event_type One of the EVENT_* constants.
-	 * @param  string $username   The username that was used (may be empty).
-	 * @param  string $ip_address The visitor's IP address.
-	 * @param  string $user_agent The visitor's User-Agent string.
+	 * @param  string $event_type  One of the EVENT_* constants.
+	 * @param  string $username    The username that was used (may be empty).
+	 * @param  string $ip_address  The visitor's IP address.
+	 * @param  string $user_agent  The visitor's User-Agent string.
+	 * @param  string $http_method The HTTP method (GET, POST, etc.).
+	 * @param  string $referrer    The HTTP Referer header value (empty = direct).
 	 * @return void
 	 */
 	public function insert(
 		string $event_type,
 		string $username,
 		string $ip_address,
-		string $user_agent
+		string $user_agent,
+		string $http_method = '',
+		string $referrer = ''
 	): void {
 		global $wpdb;
 
@@ -63,10 +67,12 @@ final class ActivityRepository {
 				'event_type'  => substr( $event_type, 0, 20 ),
 				'username'    => substr( $username, 0, 60 ),
 				'ip_address'  => substr( $ip_address, 0, 45 ),
+				'http_method' => substr( strtoupper( $http_method ), 0, 10 ),
+				'referrer'    => substr( $referrer, 0, 255 ),
 				'user_agent'  => substr( $user_agent, 0, 255 ),
-				'occurred_at' => current_time( 'mysql', true ), // UTC
+				'occurred_at' => current_time( 'mysql', true ),
 			],
-			[ '%s', '%s', '%s', '%s', '%s' ]
+			[ '%s', '%s', '%s', '%s', '%s', '%s', '%s' ]
 		);
 	}
 
