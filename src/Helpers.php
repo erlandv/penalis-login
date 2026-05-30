@@ -59,6 +59,7 @@ final class Helpers {
 			'block_behavior'          => '404',
 			'wp_admin_guest_behavior' => 'redirect_login',
 			'protection'              => self::getDefaultProtectionSettings(),
+			'log_retention_days'      => 30,
 		];
 	}
 
@@ -120,6 +121,17 @@ final class Helpers {
 	}
 
 	/**
+	 * Returns the number of days to retain activity log records.
+	 * Returns 0 when retention is disabled (keep forever).
+	 *
+	 * @return int
+	 */
+	public function getLogRetentionDays(): int {
+		$settings = $this->getSettings();
+		return max( 0, (int) ( $settings['log_retention_days'] ?? 30 ) );
+	}
+
+	/**
 	 * Returns the merged protection settings (defaults + saved values).
 	 *
 	 * Single source of truth used by all protection feature classes.
@@ -127,8 +139,7 @@ final class Helpers {
 	 *
 	 * @return array<string,mixed>
 	 */
-	public function getProtectionSettings(): array {
-		$settings = $this->getSettings();
+	public function getProtectionSettings(): array {		$settings = $this->getSettings();
 
 		return array_merge(
 			self::getDefaultProtectionSettings(),

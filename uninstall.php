@@ -30,6 +30,12 @@ if ( ! $delete_on_uninstall ) {
 
 global $wpdb;
 
+// Unschedule the activity log pruning cron job.
+$timestamp = wp_next_scheduled( 'penalis_login_prune_activity_log' );
+if ( false !== $timestamp ) {
+	wp_unschedule_event( $timestamp, 'penalis_login_prune_activity_log' );
+}
+
 // Remove the plugin settings option.
 delete_option( 'penalis_login_settings' );
 

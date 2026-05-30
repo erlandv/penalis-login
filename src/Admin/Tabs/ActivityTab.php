@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace PenalisLogin\Admin\Tabs;
 
 use PenalisLogin\Database\ActivityRepository;
+use PenalisLogin\Helpers;
 
 /**
  * Class ActivityTab
@@ -26,8 +27,12 @@ final class ActivityTab {
 
 	/**
 	 * @param ActivityRepository $repository Activity log repository.
+	 * @param Helpers            $helpers    Shared helper utilities (for retention setting).
 	 */
-	public function __construct( private readonly ActivityRepository $repository ) {}
+	public function __construct(
+		private readonly ActivityRepository $repository,
+		private readonly Helpers $helpers
+	) {}
 
 	// -------------------------------------------------------------------------
 	// Render
@@ -40,13 +45,17 @@ final class ActivityTab {
 	 */
 	public function render(): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$current_page = isset( $_GET['paged'] ) ? max( 1, (int) $_GET['paged'] ) : 1;
+		$current_page    = isset( $_GET['paged'] ) ? max( 1, (int) $_GET['paged'] ) : 1;
+		$retention_days  = $this->helpers->getLogRetentionDays();
 
-		$total   = $this->repository->getTotal();
-		$records = $this->repository->getPaginated( self::PER_PAGE, $current_page );
-
+		$total       = $this->repository->getTotal();
+		$records     = $this->repository->getPaginated( self::PER_PAGE, $current_page );
 		$total_pages = (int) ceil( $total / self::PER_PAGE );
 		?>
+
+		<!-- Activity Records — displayed first, above settings -->
+		<h2><?php esc_html_e( 'Activity Records', 'penalis-login' ); ?></h2>
+		
 		<div class="penalis-activity-header">
 			<p class="description">
 				<?php
@@ -146,9 +155,63 @@ final class ActivityTab {
 	}
 
 	// -------------------------------------------------------------------------
-	// Private helpers
+	// Retention settings (rendered below the log table)
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Renders the Log Settings section with the retention field.
+	 *
+	 * Called by SettingsPage inside the settings <form>, after render().
+	 * Keeping it separate from render() makes the form boundary explicit.
+	 *
+	 * @return void
+	 */
+	public function renderRetentionSettings(): void {
+		$retention_days = $this->helpers->getLogRetentionDays();
+		?>
+		<hr class="penalis-section-divider" />
+		<h2><?php esc_html_e( 'Log Settings', 'penalis-login' ); ?></h2>
+		<table class="form-table" role="presentation"><tbody>
+			<tr>
+				<th scope="row">
+					<label for="penalis_log_retention_days"><?php esc_html_e( 'Log Retention', 'penalis-login' ); ?></label>
+				</th>
+				<td>
+					<input
+						type="number"
+						id="penalis_log_retention_days"
+						name="<?php echo esc_attr( Helpers::OPTION_KEY ); ?>[log_retention_days]"
+						value="<?php echo esc_attr( (string) $retention_days ); ?>"
+						min="0"
+						max="3650"
+						class="small-text"
+					/>
+					<span class="description"><?php esc_html_e( 'days', 'penalis-login' ); ?></span>
+					<p class="description">
+						<?php esc_html_e( 'Automatically delete activity log records older than this many days. Set to 0 to keep records forever.', 'penalis-login' ); ?>
+					</p>
+					<p class="description" style="color:#646970;">
+						<?php
+						if ( 0 === $retention_days ) {
+							esc_html_e( 'Auto-pruning is disabled. Records will be kept indefinitely.', 'penalis-login' );
+						} else {
+							printf(
+								/* translators: %d: number of days */
+								esc_html__( 'Records older than %d day(s) will be deleted automatically once per day.', 'penalis-login' ),
+								$retention_days
+							);
+						}
+						?>
+					</p>
+				</td>
+			</tr>
+		</tbody></table>
+		<?php
+	}
+
+	// -------------------------------------------------------------------------
+	// Private helpers
+	// -------------------------------------------------------------------------
 	/**
 	 * Formats a UTC datetime string for display in the site's local timezone.
 	 *

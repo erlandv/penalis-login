@@ -53,6 +53,7 @@ final class Plugin {
 	private ActivityRepository $activityRepo;
 	private IpRulesRepository $ipRepo;
 	private ClientIpResolver $ipResolver;
+	private ActivityPruner $activityPruner;
 	private RewriteHandler $rewriteHandler;
 	private UrlFilter $urlFilter;
 	private SecurityHandler $securityHandler;
@@ -97,6 +98,10 @@ final class Plugin {
 		// Activity logger — uses resolveForLogging() (proxy headers acceptable).
 		$this->activityLogger = new ActivityLogger( $this->activityRepo, $this->ipResolver );
 		$this->activityLogger->register();
+
+		// Activity pruner — registers the cron hook callback.
+		$this->activityPruner = new ActivityPruner( $this->helpers, $this->activityRepo );
+		$this->activityPruner->register();
 
 		// Admin UI — always loaded so the admin can manage settings even when
 		// the plugin's main functionality is disabled.

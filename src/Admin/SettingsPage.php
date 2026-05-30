@@ -41,7 +41,7 @@ final class SettingsPage {
 	) {
 		$this->generalTab    = new GeneralTab( $this->helpers );
 		$this->protectionTab = new ProtectionTab( $this->helpers, $this->ipRepo );
-		$this->activityTab   = new ActivityTab( $this->activityRepo );
+		$this->activityTab   = new ActivityTab( $this->activityRepo, $this->helpers );
 	}
 
 	public function register(): void {
@@ -95,16 +95,17 @@ final class SettingsPage {
 		}
 
 		if ( 'general' === $tab ) {
-			// General tab owns the top-level keys.
 			$merged = array_merge( $existing, $sanitized );
-			// Preserve protection sub-array from existing.
-			$merged['protection'] = $existing['protection'] ?? Helpers::getDefaultProtectionSettings();
+			$merged['protection']         = $existing['protection'] ?? Helpers::getDefaultProtectionSettings();
+			$merged['log_retention_days'] = $existing['log_retention_days'] ?? 30;
+		} elseif ( 'activity' === $tab ) {
+			$merged                       = $existing;
+			$merged['log_retention_days'] = $sanitized['log_retention_days'];
 		} else {
-			// Protection tab only owns the 'protection' sub-array.
+			// Protection tab.
 			$merged               = $existing;
 			$merged['protection'] = $sanitized['protection'];
 
-			// Sync IP lists from textarea fields (skipped on reset — handled separately).
 			if ( ! isset( $input['_reset'] ) || '1' !== (string) $input['_reset'] ) {
 				$this->syncIpListsFromPost();
 			}
@@ -228,6 +229,9 @@ final class SettingsPage {
 			return $this->sanitizeGeneralTab( $input );
 		}
 
+		if ( 'activity' === $tab ) {
+			return $this->sanitizeActivityTab( $input );
+		}
 		return $this->sanitizeProtectionTab( $input );
 	}
 
@@ -300,6 +304,17 @@ final class SettingsPage {
 	// Slug validation
 	// -------------------------------------------------------------------------
 
+	/**
+	 * @param  array<string,mixed> $input
+	 * @return array{0: array<string,mixed>, 1: string[]}
+	 */
+	private function sanitizeActivityTab( array $input ): array {
+		$days = isset( $input['log_retention_days'] )
+			? min( 3650, max( 0, (int) $input['log_retention_days'] ) )
+			: 30;
+
+		return [ [ 'log_retention_days' => $days ], [] ];
+	}
 	private function validateSlug( string $raw_slug ): ?string {
 		$slug = $this->helpers->normalizeSlug( $raw_slug );
 
@@ -409,7 +424,16 @@ final class SettingsPage {
 			?>
 			<div class="penalis-login-body penalis-activity-body">
 				<div class="penalis-login-main">
-					<?php $this->activityTab->render(); ?>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+						<input type="hidden" name="action" value="penalis_login_save" />
+						<input type="hidden" name="_tab" value="activity" />
+						<?php wp_nonce_field( self::NONCE_ACTION, self::NONCE_FIELD ); ?>
+						<?php $this->activityTab->render(); ?>
+						<?php $this->activityTab->renderRetentionSettings(); ?>
+						<div class="penalis-form-actions" style="margin-top:16px;">
+							<?php submit_button( __( 'Save Settings', 'penalis-login' ), 'primary', 'submit', false ); ?>
+						</div>
+					</form>
 				</div>
 			</div>
 			<?php

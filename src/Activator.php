@@ -38,9 +38,11 @@ final class Activator {
 			add_option( Helpers::OPTION_KEY, Helpers::getDefaultSettings(), '', false );
 		}
 
-		// Create custom database tables (safe to call on every activation —
-		// dbDelta() only creates or alters, never drops data).
+		// Create custom database tables.
 		\PenalisLogin\Database\Schema::createTables();
+
+		// Schedule the daily activity log pruning cron job.
+		ActivityPruner::schedule();
 
 		// Register the rewrite rule so it exists before flushing.
 		$helpers = new Helpers();
@@ -63,6 +65,9 @@ final class Activator {
 	 * @return void
 	 */
 	public static function deactivate(): void {
+		// Unschedule the activity log pruning cron job.
+		ActivityPruner::unschedule();
+
 		// Flush rewrite rules to remove the custom login rule.
 		flush_rewrite_rules( true );
 	}
