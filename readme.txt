@@ -4,7 +4,7 @@ Tags: login, security, custom login url, hide login, brute force
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 2.1.0
+Stable tag: 2.1.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -68,6 +68,9 @@ Not by default. The plugin only reads `REMOTE_ADDR` (which cannot be spoofed) un
 Yes. Two custom tables are created on activation: one for the login activity log and one for IP rules. They are removed when the plugin is deleted if the "Delete Plugin Data" setting is enabled.
 
 == Changelog ==
+
+= 2.1.1 =
+* Fix: Replaced unicode symbol characters (✓ ✗ ⚠) with Dashicons in admin status indicators and warning messages for better accessibility and screen reader compatibility.
 
 = 2.1.0 =
 * New: Activity log now records HTTP method (GET/POST) and referrer for each login event, making it easier to distinguish browser logins from bot probes.
