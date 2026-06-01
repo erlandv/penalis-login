@@ -84,13 +84,27 @@
    ---------------------------------------------------------------------- */
 
 .penalis-status-active {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
 	color: #00a32a;
 	font-weight: 600;
 }
 
 .penalis-status-inactive {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
 	color: #d63638;
 	font-weight: 600;
+}
+
+.penalis-status-active .dashicons,
+.penalis-status-inactive .dashicons {
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+	flex-shrink: 0;
 }
 
 /* -------------------------------------------------------------------------
@@ -395,6 +409,14 @@
 	margin-top: -4px;
 }
 
+.penalis-behavior-row-warn .dashicons {
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+	flex-shrink: 0;
+	color: #dba617;
+}
+
 /* Warning row tint when selected */
 .penalis-behavior-list input[type="radio"]:checked + .penalis-behavior-row.is-warning {
 	border-color: #dba617;
@@ -491,6 +513,14 @@
 	color: #996800;
 }
 
+.penalis-field-note-warning .dashicons {
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+	flex-shrink: 0;
+	color: #dba617;
+}
+
 /* -------------------------------------------------------------------------
    Danger button
    ---------------------------------------------------------------------- */
@@ -565,10 +595,10 @@
 }
 
 .penalis-activity-table th:nth-child(1) { width: 130px; } /* Date / Time */
-.penalis-activity-table th:nth-child(2) { width: 150px; } /* Event */
+.penalis-activity-table th:nth-child(2) { width: 130px; } /* Event */
 .penalis-activity-table th:nth-child(3) { width: 110px; } /* Username */
-.penalis-activity-table th:nth-child(4) { width: 110px; } /* IP Address */
-.penalis-activity-table th:nth-child(5) { width: 60px;  } /* Method */
+.penalis-activity-table th:nth-child(4) { width: 150px; } /* IP Address */
+.penalis-activity-table th:nth-child(5) { width: 80px;  } /* Method */
 .penalis-activity-table th:nth-child(6) { width: auto;  } /* Referrer */
 .penalis-activity-table th:nth-child(7) { width: auto;  } /* User Agent */
 
@@ -579,7 +609,6 @@
 }
 
 .penalis-activity-method {
-	text-align: center;
 	font-size: 12px;
 }
 
@@ -612,7 +641,7 @@
 	padding: 2px 8px;
 	font-size: 11px;
 	font-weight: 500;
-	border-radius: 10px;
+	border-radius: 5px;
 	line-height: 1.7;
 	white-space: nowrap;
 }

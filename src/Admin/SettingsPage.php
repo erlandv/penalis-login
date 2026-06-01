@@ -553,9 +553,9 @@ final class SettingsPage {
 						<td><strong><?php esc_html_e( 'Plugin Status', 'penalis-login' ); ?></strong></td>
 						<td>
 							<?php if ( $this->helpers->isPluginEnabled() ) : ?>
-								<span class="penalis-status-active">&#10003; <?php esc_html_e( 'Active', 'penalis-login' ); ?></span>
+								<span class="penalis-status-active"><span class="dashicons dashicons-yes-alt" aria-hidden="true"></span> <?php esc_html_e( 'Active', 'penalis-login' ); ?></span>
 							<?php else : ?>
-								<span class="penalis-status-inactive">&#10007; <?php esc_html_e( 'Disabled', 'penalis-login' ); ?></span>
+								<span class="penalis-status-inactive"><span class="dashicons dashicons-dismiss" aria-hidden="true"></span> <?php esc_html_e( 'Disabled', 'penalis-login' ); ?></span>
 							<?php endif; ?>
 						</td>
 					</tr>
@@ -570,15 +570,15 @@ final class SettingsPage {
 					<?php if ( 'protection' === $tab ) : ?>
 						<tr>
 							<td><strong><?php esc_html_e( 'Rate Limiting', 'penalis-login' ); ?></strong></td>
-							<td><?php echo $prot['attempt_limiter_enabled'] ? '<span class="penalis-status-active">&#10003; ' . esc_html__( 'Enabled', 'penalis-login' ) . '</span>' : '<span class="penalis-status-inactive">&#10007; ' . esc_html__( 'Disabled', 'penalis-login' ) . '</span>'; ?></td>
+							<td><?php echo $prot['attempt_limiter_enabled'] ? '<span class="penalis-status-active"><span class="dashicons dashicons-yes-alt" aria-hidden="true"></span> ' . esc_html__( 'Enabled', 'penalis-login' ) . '</span>' : '<span class="penalis-status-inactive"><span class="dashicons dashicons-dismiss" aria-hidden="true"></span> ' . esc_html__( 'Disabled', 'penalis-login' ) . '</span>'; ?></td>
 						</tr>
 						<tr>
 							<td><strong><?php esc_html_e( 'Notifications', 'penalis-login' ); ?></strong></td>
-							<td><?php echo $prot['notify_enabled'] ? '<span class="penalis-status-active">&#10003; ' . esc_html__( 'Enabled', 'penalis-login' ) . '</span>' : '<span class="penalis-status-inactive">&#10007; ' . esc_html__( 'Disabled', 'penalis-login' ) . '</span>'; ?></td>
+							<td><?php echo $prot['notify_enabled'] ? '<span class="penalis-status-active"><span class="dashicons dashicons-yes-alt" aria-hidden="true"></span> ' . esc_html__( 'Enabled', 'penalis-login' ) . '</span>' : '<span class="penalis-status-inactive"><span class="dashicons dashicons-dismiss" aria-hidden="true"></span> ' . esc_html__( 'Disabled', 'penalis-login' ) . '</span>'; ?></td>
 						</tr>
 						<tr>
 							<td><strong><?php esc_html_e( 'IP Access Control', 'penalis-login' ); ?></strong></td>
-							<td><?php echo $prot['ip_access_enabled'] ? '<span class="penalis-status-active">&#10003; ' . esc_html__( 'Enabled', 'penalis-login' ) . '</span>' : '<span class="penalis-status-inactive">&#10007; ' . esc_html__( 'Disabled', 'penalis-login' ) . '</span>'; ?></td>
+							<td><?php echo $prot['ip_access_enabled'] ? '<span class="penalis-status-active"><span class="dashicons dashicons-yes-alt" aria-hidden="true"></span> ' . esc_html__( 'Enabled', 'penalis-login' ) . '</span>' : '<span class="penalis-status-inactive"><span class="dashicons dashicons-dismiss" aria-hidden="true"></span> ' . esc_html__( 'Disabled', 'penalis-login' ) . '</span>'; ?></td>
 						</tr>
 					<?php else : ?>
 						<tr>

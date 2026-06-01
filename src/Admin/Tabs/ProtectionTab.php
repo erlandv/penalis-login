@@ -123,7 +123,7 @@ final class ProtectionTab {
 					</p>
 					<?php if ( empty( $allowlist ) && 'allowlist' === (string) $this->getProtectionSetting( 'ip_mode' ) ) : ?>
 						<div class="penalis-field-note penalis-field-note-warning" style="margin-top:8px; max-width:680px;">
-							<span>&#9888; <?php esc_html_e( 'Allowlist mode is active but the list is empty — no one will be blocked. Add at least one IP before relying on this mode.', 'penalis-login' ); ?></span>
+							<span><span class="dashicons dashicons-warning" aria-hidden="true"></span> <?php esc_html_e( 'Allowlist mode is active but the list is empty — no one will be blocked. Add at least one IP before relying on this mode.', 'penalis-login' ); ?></span>
 						</div>
 					<?php endif; ?>
 				</td>
@@ -271,7 +271,7 @@ final class ProtectionTab {
 			</label>
 		</fieldset>
 		<div class="penalis-field-note penalis-field-note-warning" style="margin-top:8px; max-width:680px;">
-			<span>&#9888; <?php esc_html_e( 'Allowlist mode will deny everyone not on the list, including you. Make sure your own IP is added before enabling this mode.', 'penalis-login' ); ?></span>
+			<span><span class="dashicons dashicons-warning" aria-hidden="true"></span> <?php esc_html_e( 'Allowlist mode will deny everyone not on the list, including you. Make sure your own IP is added before enabling this mode.', 'penalis-login' ); ?></span>
 		</div>
 		<?php
 	}
@@ -290,7 +290,7 @@ final class ProtectionTab {
 			<?php esc_html_e( 'Trust proxy headers (X-Forwarded-For, CF-Connecting-IP, X-Real-IP) from the IPs listed below', 'penalis-login' ); ?>
 		</label>
 		<div class="penalis-field-note penalis-field-note-warning" style="margin-top:8px; max-width:680px;">
-			<span>&#9888; <?php esc_html_e( 'Only enable this if your site is behind a reverse proxy. Enabling it without adding the correct proxy IPs below will make IP-based security features unreliable.', 'penalis-login' ); ?></span>
+			<span><span class="dashicons dashicons-warning" aria-hidden="true"></span> <?php esc_html_e( 'Only enable this if your site is behind a reverse proxy. Enabling it without adding the correct proxy IPs below will make IP-based security features unreliable.', 'penalis-login' ); ?></span>
 		</div>
 		<?php
 	}

@@ -236,7 +236,7 @@ final class GeneralTab {
 					<?php endif; ?>
 					<?php if ( ! empty( $option['warn'] ) ) : ?>
 						<span class="penalis-behavior-row-warn">
-							<span aria-hidden="true">&#9888;</span>
+							<span class="dashicons dashicons-warning" aria-hidden="true"></span>
 							<?php echo esc_html( $option['warn'] ); ?>
 						</span>
 					<?php endif; ?>
