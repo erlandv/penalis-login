@@ -142,6 +142,15 @@ final class ProtectionTab {
 				<td><?php $this->renderTrustedProxiesField(); ?></td>
 			</tr>
 		</tbody></table>
+
+		<h2><?php esc_html_e( 'Nginx Auth Request', 'penalis-login' ); ?></h2>
+		<p><?php esc_html_e( 'Use this shared secret when configuring the optional Nginx auth_request integration.', 'penalis-login' ); ?></p>
+		<table class="form-table" role="presentation"><tbody>
+			<tr>
+				<th scope="row"><label for="penalis_nginx_auth_token"><?php esc_html_e( 'Shared Secret', 'penalis-login' ); ?></label></th>
+				<td><?php $this->renderNginxAuthTokenField(); ?></td>
+			</tr>
+		</tbody></table>
 		<?php
 	}
 
@@ -308,6 +317,29 @@ final class ProtectionTab {
 		><?php echo esc_textarea( $val ); ?></textarea>
 		<p class="description">
 			<?php esc_html_e( 'One IP address per line. Inline comments supported. Only requests arriving from these IPs will have their proxy headers trusted.', 'penalis-login' ); ?>
+		</p>
+		<?php
+	}
+
+	// -------------------------------------------------------------------------
+	// Nginx auth_request fields
+	// -------------------------------------------------------------------------
+
+	private function renderNginxAuthTokenField(): void {
+		$token = $this->helpers->getNginxAuthToken();
+		?>
+		<input
+			type="text"
+			id="penalis_nginx_auth_token"
+			value="<?php echo esc_attr( $token ); ?>"
+			class="regular-text code"
+			readonly
+			autocomplete="off"
+			spellcheck="false"
+			onfocus="this.select();"
+		/>
+		<p class="description">
+			<?php esc_html_e( 'Set this value as the X-Penalis-Auth-Token header in the internal Nginx auth_request subrequest. Keep it private; public callers without this token always receive 403.', 'penalis-login' ); ?>
 		</p>
 		<?php
 	}

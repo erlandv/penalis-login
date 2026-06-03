@@ -33,6 +33,9 @@ final class Helpers {
 	/** Default custom login slug. */
 	public const DEFAULT_SLUG = 'login';
 
+	/** Length of the shared secret used by the Nginx auth_request endpoint. */
+	private const NGINX_AUTH_TOKEN_LENGTH = 64;
+
 	// -------------------------------------------------------------------------
 	// In-memory cache
 	// -------------------------------------------------------------------------
@@ -56,6 +59,7 @@ final class Helpers {
 		return [
 			'enabled'                 => true,
 			'login_slug'              => self::DEFAULT_SLUG,
+			'nginx_auth_token'        => self::generateNginxAuthToken(),
 			'block_behavior'          => '404',
 			'wp_admin_guest_behavior' => 'redirect_login',
 			'protection'              => self::getDefaultProtectionSettings(),
@@ -178,6 +182,47 @@ final class Helpers {
 		$slug     = $settings['login_slug'] ?? self::DEFAULT_SLUG;
 
 		return $this->sanitizeSlug( (string) $slug );
+	}
+
+	/**
+	 * Returns the shared secret required by the Nginx auth_request endpoint.
+	 *
+	 * The token is generated lazily for upgraded installs that predate this
+	 * setting. It is intentionally not user-editable; admins copy it into their
+	 * Nginx config and can rotate it by resetting plugin settings.
+	 *
+	 * @return string
+	 */
+	public function getNginxAuthToken(): string {
+		$settings = $this->getSettings();
+		$token    = isset( $settings['nginx_auth_token'] )
+			? trim( (string) $settings['nginx_auth_token'] )
+			: '';
+
+		if ( '' !== $token ) {
+			return $token;
+		}
+
+		$token                         = self::generateNginxAuthToken();
+		$settings['nginx_auth_token'] = $token;
+
+		update_option( self::OPTION_KEY, $settings, false );
+		$this->settings = $settings;
+
+		return $token;
+	}
+
+	/**
+	 * Generates a URL/header-safe shared secret for the Nginx auth endpoint.
+	 *
+	 * @return string
+	 */
+	public static function generateNginxAuthToken(): string {
+		if ( function_exists( 'wp_generate_password' ) ) {
+			return wp_generate_password( self::NGINX_AUTH_TOKEN_LENGTH, false, false );
+		}
+
+		return bin2hex( random_bytes( intdiv( self::NGINX_AUTH_TOKEN_LENGTH, 2 ) ) );
 	}
 
 	/**
