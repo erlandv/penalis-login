@@ -80,7 +80,8 @@ final class LoginAttemptLimiter {
 	 * Runs on 'init' at priority 5 — before the login form is rendered.
 	 * Detects the login page by matching the REQUEST_URI against the
 	 * configured slug directly, without relying on query vars (which are
-	 * not yet populated at init time).
+	 * not yet populated at init time). The request path is normalized
+	 * relative to home_url() so subdirectory installs are handled.
 	 *
 	 * @return void
 	 */
@@ -132,11 +133,8 @@ final class LoginAttemptLimiter {
 			return true;
 		}
 
-		// Custom slug — match the first path segment of REQUEST_URI.
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput
-		$uri  = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
-		$path = explode( '?', (string) $uri, 2 )[0];
-		$path = trim( $path, '/' );
+		// Custom slug — match the first path segment relative to home_url().
+		$path = trim( $this->helpers->getCurrentPathRelativeToHome(), '/' );
 
 		// Take only the first segment (e.g. "login" from "login/foo").
 		$first_segment = explode( '/', $path, 2 )[0];

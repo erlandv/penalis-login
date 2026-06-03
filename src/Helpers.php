@@ -266,19 +266,56 @@ final class Helpers {
 	}
 
 	/**
+	 * Returns a request path relative to the WordPress home URL path.
+	 *
+	 * Examples:
+	 *  - home /      + request /login/          => /login
+	 *  - home /blog/ + request /blog/login/     => /login
+	 *  - home /blog/ + request /blog/wp-admin/  => /wp-admin
+	 *
+	 * @param  string $uri Request URI or URL.
+	 * @return string      Normalized path beginning with /, without a trailing slash.
+	 */
+	public function getPathRelativeToHome( string $uri ): string {
+		$path = parse_url( $uri, PHP_URL_PATH );
+
+		if ( ! is_string( $path ) || '' === $path ) {
+			$path = '/';
+		}
+
+		$path      = $this->normalizePath( $path );
+		$home_path = $this->normalizePath( (string) parse_url( home_url( '/' ), PHP_URL_PATH ) );
+
+		if ( '/' !== $home_path && ( $path === $home_path || str_starts_with( $path, $home_path . '/' ) ) ) {
+			$path = substr( $path, strlen( $home_path ) );
+			$path = $this->normalizePath( $path );
+		}
+
+		return $path;
+	}
+
+	/**
+	 * Returns the current request path relative to the WordPress home URL path.
+	 *
+	 * @return string
+	 */
+	public function getCurrentPathRelativeToHome(): string {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		$uri = isset( $_SERVER['REQUEST_URI'] )
+			? wp_unslash( $_SERVER['REQUEST_URI'] )
+			: '';
+
+		return $this->getPathRelativeToHome( (string) $uri );
+	}
+
+	/**
 	 * Determines whether the current request is for the /wp-admin/ directory
-	 * (but NOT an admin-ajax.php or REST API request).
+	 * relative to the WordPress home path (but NOT admin-ajax.php or REST API).
 	 *
 	 * @return bool
 	 */
 	public function isWpAdminRequest(): bool {
-		// phpcs:disable WordPress.Security.ValidatedSanitizedInput
-		$uri = isset( $_SERVER['REQUEST_URI'] )
-			? wp_unslash( $_SERVER['REQUEST_URI'] )
-			: '';
-		// phpcs:enable
-
-		$path = explode( '?', (string) $uri, 2 )[0];
+		$path = $this->getCurrentPathRelativeToHome();
 
 		// Must start with /wp-admin/ (or be exactly /wp-admin).
 		if ( ! preg_match( '#^/wp-admin(/|$)#i', $path ) ) {
@@ -292,6 +329,22 @@ final class Helpers {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Normalizes a URL path to a leading slash and no trailing slash.
+	 *
+	 * @param  string $path Raw path.
+	 * @return string
+	 */
+	private function normalizePath( string $path ): string {
+		$path = preg_replace( '#/+#', '/', '/' . trim( $path, '/' ) );
+
+		if ( ! is_string( $path ) || '' === $path ) {
+			return '/';
+		}
+
+		return '/' === $path ? '/' : rtrim( $path, '/' );
 	}
 
 	// -------------------------------------------------------------------------

@@ -12,8 +12,9 @@
  *
  * Nginx passes the original request URI in the X-Original-URI header and
  * the shared secret in the X-Penalis-Auth-Token header. After the token is
- * verified, the endpoint strips the path down to its first segment and
- * compares it against the stored slug.
+ * verified, the endpoint normalizes the path relative to the WordPress home
+ * URL, strips it down to its first segment, and compares it against the stored
+ * slug.
  *
  * Response codes
  * --------------
@@ -100,8 +101,8 @@ final class LoginSlugEndpoint {
 	 *
 	 * Validates the shared secret from X-Penalis-Auth-Token, then reads the
 	 * original request URI from the X-Original-URI header that Nginx sets on
-	 * the subrequest, extracts the first path segment, and compares it against
-	 * the configured login slug.
+	 * the subrequest, normalizes it relative to home_url(), extracts the first
+	 * path segment, and compares it against the configured login slug.
 	 *
 	 * Returns HTTP 200 if the shared secret is valid and the URI matches the
 	 * login slug, or HTTP 403 if the secret is missing/invalid or the URI does
@@ -125,9 +126,7 @@ final class LoginSlugEndpoint {
 			return new WP_REST_Response( null, 403 );
 		}
 
-		// Strip query string and normalise slashes.
-		$path = explode( '?', (string) $original_uri, 2 )[0];
-		$path = '/' . trim( (string) $path, '/' );
+		$path = $this->helpers->getPathRelativeToHome( (string) $original_uri );
 
 		// Extract the first path segment.
 		// e.g. "/my-login/foo" → "my-login"
