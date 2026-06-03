@@ -2,20 +2,23 @@
 # Penalis Login — Nginx auth_request Integration
 # =============================================================================
 #
-# This config snippet enables Nginx to automatically apply basic auth and
-# rate limiting to the custom login slug — without ever needing to know
-# what the slug actually is.
+# This config snippet shows how Nginx can query WordPress for the current
+# login slug without exposing the slug-check endpoint as a public oracle.
 #
 # How it works
 # ------------
 # 1. Every incoming request passes through the main `location /` block.
 # 2. Nginx makes an internal subrequest to the WordPress REST endpoint
 #    /wp-json/penalis-login/v1/is-login-slug, passing the original URI
-#    in the X-Original-URI header.
-# 3. WordPress checks whether the URI matches the configured login slug
-#    and responds with HTTP 200 (match) or 403 (no match).
-# 4. If 200: Nginx applies basic auth + rate limiting before serving.
-#    If 403: Nginx serves the request normally with no extra protection.
+#    in the X-Original-URI header and the plugin's shared secret in the
+#    X-Penalis-Auth-Token header.
+# 3. WordPress validates the shared secret, checks whether the URI matches
+#    the configured login slug, and responds with HTTP 200 (match) or 403
+#    (token missing/invalid, or no match).
+# 4. Use the response only in a configuration that can safely map the check
+#    result to your desired protection behavior. Plain auth_request cannot
+#    conditionally enable auth_basic by itself; the dedicated location below
+#    remains the simplest production setup.
 #
 # When you change the slug in the plugin settings, Nginx picks it up
 # automatically on the next request — no reload required.
@@ -29,9 +32,12 @@
 # Installation
 # ------------
 # 1. Copy the relevant blocks below into your server {} block.
-# 2. Adjust the fastcgi_pass socket path to match your PHP-FPM setup.
-# 3. Reload Nginx: nginx -s reload
-# 4. No further changes needed when the login slug is updated in WordPress.
+# 2. Copy the shared secret from WordPress Admin → Settings → Penalis Login
+#    → Protection → Nginx Auth Request.
+# 3. Replace "paste-shared-secret-here" below with that value.
+# 4. Adjust the fastcgi_pass socket path to match your PHP-FPM setup.
+# 5. Reload Nginx: nginx -s reload
+# 6. No further changes needed when the login slug is updated in WordPress.
 #
 # =============================================================================
 
@@ -85,7 +91,11 @@ location = /penalis-login-auth-check {
     proxy_set_header        Content-Length  "";
 
     # Pass the original URI so WordPress knows what to check.
-    proxy_set_header        X-Original-URI  $request_uri;
+    proxy_set_header        X-Original-URI          $request_uri;
+
+    # Shared secret required by the REST endpoint. Public requests that do
+    # not know this token receive 403 before any slug comparison is performed.
+    proxy_set_header        X-Penalis-Auth-Token    "paste-shared-secret-here";
 
     # Do not cache auth check responses.
     proxy_cache             off;

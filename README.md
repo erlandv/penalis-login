@@ -196,9 +196,13 @@ The plugin exposes a REST endpoint that Nginx can query via the `auth_request` d
 GET /wp-json/penalis-login/v1/is-login-slug
 ```
 
-Nginx passes the original request URI in the `X-Original-URI` header. The endpoint responds with:
-- `200` — the URI matches the login slug (Nginx should apply basic auth and rate limiting)
-- `403` — the URI does not match (Nginx should serve the request normally)
+Nginx passes:
+- `X-Original-URI` — the original request URI to check
+- `X-Penalis-Auth-Token` — the shared secret from **Settings → Penalis Login → Protection → Nginx Auth Request**
+
+The endpoint responds with:
+- `200` — the token is valid and the URI matches the login slug
+- `403` — the token is missing/invalid, or the URI does not match
 
 When the slug is changed in the plugin settings, Nginx picks it up automatically on the next request — no Nginx reload required.
 
