@@ -4,7 +4,7 @@ Tags: login, security, custom login url, hide login, brute force
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 2.1.1
+Stable tag: 2.1.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -31,6 +31,7 @@ The plugin is organized into three tabs:
 * Login Notification — sends an email alert when suspicious activity is detected from a single IP
 * IP Access Control — blocklist specific IPs, or restrict access to an allowlist of trusted IPs only
 * Trusted Proxies — configure trusted reverse proxy IPs (Cloudflare, Nginx) so security features use the real visitor IP
+* Nginx Auth Request — provides a shared secret for the optional slug-aware Nginx integration
 
 **Activity Log** — always active:
 
@@ -68,6 +69,10 @@ Not by default. The plugin only reads `REMOTE_ADDR` (which cannot be spoofed) un
 Yes. Two custom tables are created on activation: one for the login activity log and one for IP rules. They are removed when the plugin is deleted if the "Delete Plugin Data" setting is enabled.
 
 == Changelog ==
+
+= 2.1.2 =
+* Security: The Nginx auth_request REST endpoint now requires a shared secret header before comparing request paths against the configured login slug.
+* New: Added a readonly shared secret field under Protection → Nginx Auth Request for Nginx configuration.
 
 = 2.1.1 =
 * Fix: Replaced unicode symbol characters (✓ ✗ ⚠) with Dashicons in admin status indicators and warning messages for better accessibility and screen reader compatibility.
