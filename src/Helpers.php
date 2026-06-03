@@ -310,7 +310,8 @@ final class Helpers {
 
 	/**
 	 * Determines whether the current request is for the /wp-admin/ directory
-	 * relative to the WordPress home path (but NOT admin-ajax.php or REST API).
+	 * relative to the WordPress home path (but NOT admin-ajax.php, admin-post.php,
+	 * or REST API).
 	 *
 	 * @return bool
 	 */
@@ -322,9 +323,9 @@ final class Helpers {
 			return false;
 		}
 
-		// Exclude admin-ajax.php — it is used by front-end code and must
-		// never be blocked.
-		if ( str_contains( $path, 'admin-ajax.php' ) ) {
+		// Exclude front-end entry points that live under wp-admin but must remain
+		// reachable to unauthenticated visitors.
+		if ( preg_match( '#^/wp-admin/(admin-ajax|admin-post)\.php$#i', $path ) ) {
 			return false;
 		}
 

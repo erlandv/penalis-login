@@ -23,14 +23,14 @@ The plugin is organized into three tabs:
 * Configurable guest access behavior for `/wp-admin/` (redirect to login, redirect to homepage, 404, or 403)
 * Filters all WordPress-generated login/logout/lost-password/register URLs
 * Anti-lockout: logged-in administrators can always access `/wp-login.php` and `/wp-admin/` directly
-* Compatible with WooCommerce, REST API, XML-RPC, admin-ajax, and application passwords
+* Compatible with WooCommerce, REST API, XML-RPC, admin-ajax, admin-post, and application passwords
 
 **Protection** — optional, all features disabled by default:
 
 * Login Attempt Limiter — rate limits failed login attempts per IP and username; locks out offending IPs temporarily (HTTP 429)
 * Login Notification — sends an email alert when suspicious activity is detected from a single IP
 * IP Access Control — blocklist specific IPs, or restrict access to an allowlist of trusted IPs only
-* Trusted Proxies — configure trusted reverse proxy IPs (Cloudflare, Nginx) so security features use the real visitor IP
+* Trusted Proxies — configure trusted reverse proxy IPs or CIDR ranges (Cloudflare, Nginx) so security features use the real visitor IP
 * Nginx Auth Request — provides a shared secret for the optional slug-aware Nginx integration
 
 **Activity Log** — always active:
@@ -62,7 +62,7 @@ Yes. The plugin does not interfere with WooCommerce's My Account login form or i
 
 = Can an attacker bypass rate limiting by forging IP headers? =
 
-Not by default. The plugin only reads `REMOTE_ADDR` (which cannot be spoofed) unless you explicitly configure trusted proxy IPs in the Protection tab. Proxy headers are only trusted when the actual connecting IP matches a listed trusted proxy.
+Not by default. The plugin only reads `REMOTE_ADDR` (which cannot be spoofed) unless you explicitly configure trusted proxy IPs or CIDR ranges in the Protection tab. Proxy headers are only trusted when the actual connecting IP matches a listed trusted proxy.
 
 = Does the plugin create database tables? =
 
@@ -87,7 +87,7 @@ Yes. Two custom tables are created on activation: one for the login activity log
 * New: Login Attempt Limiter — rate limits failed login attempts per IP and username with configurable thresholds and lockout duration. Locked-out IPs receive HTTP 429 and cannot access the login page until the lockout expires.
 * New: Login Notification — sends an email alert to the admin when a configurable number of failed attempts is detected from a single IP within the time window.
 * New: IP Access Control — blocklist specific IPs from the login page, or switch to allowlist mode to restrict access to trusted IPs only. IP lists support inline comments (`192.168.1.1 # office`).
-* New: Trusted Proxies — configure trusted reverse proxy IPs so rate limiting and IP access control use the real visitor IP instead of the proxy IP. Proxy headers are only trusted when `REMOTE_ADDR` matches a listed proxy, preventing IP spoofing attacks.
+* New: Trusted Proxies — configure trusted reverse proxy IPs or CIDR ranges so rate limiting and IP access control use the real visitor IP instead of the proxy IP. Proxy headers are only trusted when `REMOTE_ADDR` matches a listed proxy, preventing IP spoofing attacks.
 * New: Activity Log — records every login event (success, failure, blocked by rate limit, blocked by IP rule) with IP address, username, user agent, and timestamp. Viewable in a dedicated tab with pagination and log clearing.
 * New: Settings page redesigned with three tabs — General, Protection, and Activity Log.
 * New: Reset to Defaults button on both General and Protection tabs.

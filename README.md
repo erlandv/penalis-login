@@ -19,7 +19,7 @@ This plugin was originally developed for internal use at [Penalis](https://penal
 - **Login Attempt Limiter** — rate limits failed login attempts per IP and username; locks out offending IPs for a configurable duration
 - **Login Notification** — sends an email alert when a suspicious number of failed attempts is detected from a single IP
 - **IP Access Control** — blocklist specific IPs from the login page, or restrict access to an allowlist of trusted IPs only
-- **Trusted Proxies** — configure trusted reverse proxy IPs (Cloudflare, Nginx) so security features use the real visitor IP instead of the proxy IP
+- **Trusted Proxies** — configure trusted reverse proxy IPs or CIDR ranges (Cloudflare, Nginx) so security features use the real visitor IP instead of the proxy IP
 
 ### Activity Log (always active)
 - Records every login attempt (success, failure, blocked by rate limit, blocked by IP rule) with IP address, username, HTTP method, referrer, user agent, and timestamp
@@ -129,10 +129,10 @@ When an IP is locked out, the login page returns HTTP 429 and is inaccessible un
 
 | Setting | Description | Default |
 |---|---|---|
-| Enable Trusted Proxies | Trust proxy headers from the listed IPs | Off |
-| Proxy IP Addresses | One IP per line; inline comments supported | *(empty)* |
+| Enable Trusted Proxies | Trust proxy headers from the listed IPs or CIDR ranges | Off |
+| Proxy IPs / CIDR Ranges | One IP or CIDR range per line; inline comments supported (`103.21.244.0/22 # Cloudflare`) | *(empty)* |
 
-When enabled, `CF-Connecting-IP`, `X-Real-IP`, and `X-Forwarded-For` headers are only trusted when the actual `REMOTE_ADDR` matches a listed proxy IP. When disabled, only `REMOTE_ADDR` is used — this is the secure default and cannot be spoofed.
+When enabled, `CF-Connecting-IP`, `X-Real-IP`, and `X-Forwarded-For` headers are only trusted when the actual `REMOTE_ADDR` matches a listed proxy IP or CIDR range. When disabled, only `REMOTE_ADDR` is used — this is the secure default and cannot be spoofed.
 
 ### Activity Log Tab
 
@@ -174,7 +174,7 @@ If a logged-in administrator visits `/wp-login.php` or `/wp-admin/` directly, th
 
 ### IP spoofing protection
 
-`REMOTE_ADDR` is the only value that cannot be spoofed — it is set by the OS/kernel based on the actual TCP connection. Proxy headers (`X-Forwarded-For`, `CF-Connecting-IP`, `X-Real-IP`) are trivially forgeable. The `ClientIpResolver` class only reads proxy headers when `REMOTE_ADDR` matches a configured trusted proxy IP, preventing attackers from bypassing rate limiting by forging headers.
+`REMOTE_ADDR` is the only value that cannot be spoofed — it is set by the OS/kernel based on the actual TCP connection. Proxy headers (`X-Forwarded-For`, `CF-Connecting-IP`, `X-Real-IP`) are trivially forgeable. The `ClientIpResolver` class only reads proxy headers when `REMOTE_ADDR` matches a configured trusted proxy IP or CIDR range, preventing attackers from bypassing rate limiting by forging headers.
 
 ### Database tables
 
@@ -216,6 +216,7 @@ See [nginx-auth-request.conf.example](./nginx-auth-request.conf.example) for a r
 | REST API (`/wp-json/`) | ✓ |
 | XML-RPC | ✓ |
 | admin-ajax.php | ✓ |
+| admin-post.php | ✓ |
 | Application passwords | ✓ |
 | Password-protected posts | ✓ |
 | Password reset emails | ✓ |

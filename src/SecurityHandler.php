@@ -14,6 +14,7 @@
  * What we deliberately do NOT touch
  * ----------------------------------
  * - admin-ajax.php          (AJAX handlers)
+ * - admin-post.php          (front-end form/action handlers)
  * - wp-cron.php             (scheduled tasks)
  * - xmlrpc.php              (XML-RPC API)
  * - wp-json/*               (REST API)
