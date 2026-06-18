@@ -62,6 +62,7 @@ final class SecurityHandler {
 	public function register(): void {
 		add_action( 'init', [ $this, 'blockWpLogin' ], 1 );
 		add_action( 'init', [ $this, 'blockWpAdminForGuests' ], 1 );
+		add_action( 'template_redirect', [ $this, 'blockCoreLoginShortcut' ], 0 );
 	}
 
 	// -------------------------------------------------------------------------
@@ -94,6 +95,27 @@ final class SecurityHandler {
 		}
 
 		// Enforce the configured blocking behavior.
+		$this->enforceBlockBehavior();
+	}
+
+	/**
+	 * Blocks WordPress core's /login/ shortcut when it is not the active slug.
+	 *
+	 * Core redirects /login/ to wp-login.php via wp_redirect_admin_locations().
+	 * Our URL filter then rewrites that destination to the active custom slug,
+	 * exposing it when a site previously used "login" and later changed slug.
+	 *
+	 * @return void
+	 */
+	public function blockCoreLoginShortcut(): void {
+		if ( 'login' === $this->helpers->getLoginSlug() ) {
+			return;
+		}
+
+		if ( '/login' !== $this->helpers->getCurrentPathRelativeToHome() ) {
+			return;
+		}
+
 		$this->enforceBlockBehavior();
 	}
 
