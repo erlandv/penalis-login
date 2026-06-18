@@ -4,7 +4,7 @@ Tags: login, security, custom login url, hide login, brute force
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 2.2.0
+Stable tag: 2.3.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -69,6 +69,9 @@ Not by default. The plugin only reads `REMOTE_ADDR` (which cannot be spoofed) un
 Yes. Two custom tables are created on activation: one for the login activity log and one for IP rules. They are removed when the plugin is deleted if the "Delete Plugin Data" setting is enabled.
 
 == Changelog ==
+
+= 2.3.0 =
+* Security: Block WordPress core's `/login/` shortcut when the active custom login slug is different, preventing the old default login slug from redirecting to and exposing the current custom slug.
 
 = 2.2.0 =
 * New: Trusted Proxies now support exact IP addresses and CIDR ranges for IPv4 and IPv6 proxy networks.
