@@ -138,13 +138,21 @@ final class IpAccessControl {
 	/**
 	 * Returns whether the current request is for the login page.
 	 *
-	 * Checks both the custom slug (via query var) and the native wp-login.php.
+	 * Checks both the custom slug and the native wp-login.php. This runs on
+	 * init, before rewrite query vars are populated, so custom slug detection
+	 * must use the request path rather than get_query_var().
 	 *
 	 * @return bool
 	 */
 	private function isLoginPageRequest(): bool {
-		return $this->helpers->isWpLoginRequest()
-			|| (bool) get_query_var( RewriteHandler::QUERY_VAR );
+		if ( $this->helpers->isWpLoginRequest() ) {
+			return true;
+		}
+
+		$path          = trim( $this->helpers->getCurrentPathRelativeToHome(), '/' );
+		$first_segment = explode( '/', $path, 2 )[0];
+
+		return $first_segment === $this->helpers->getLoginSlug();
 	}
 
 	// -------------------------------------------------------------------------

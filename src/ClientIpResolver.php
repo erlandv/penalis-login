@@ -23,9 +23,9 @@
  * - SECURITY (LoginAttemptLimiter, IpAccessControl): use resolveForSecurity().
  *   Returns the most accurate IP possible while resisting spoofing.
  *
- * - LOGGING (ActivityLogger): use resolveForLogging().
- *   Includes proxy headers for informational value, clearly noting they
- *   may be spoofed. Acceptable because logs are not used for enforcement.
+ * - LOGGING (ActivityLogger): use resolveForLogging() only for records that
+ *   are not used for enforcement. Failed-login records are counted by the
+ *   rate limiter and notifier, so they must use resolveForSecurity().
  *
  * @package PenalisLogin
  */

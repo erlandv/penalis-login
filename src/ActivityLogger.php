@@ -70,7 +70,7 @@ final class ActivityLogger {
 		$this->repository->insert(
 			ActivityRepository::EVENT_LOGIN_FAILED,
 			$username,
-			$this->ipResolver->resolveForLogging(),
+			$this->ipResolver->resolveForSecurity(),
 			$this->getUserAgent(),
 			$this->getHttpMethod(),
 			$this->getReferrer()

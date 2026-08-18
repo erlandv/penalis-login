@@ -95,7 +95,8 @@ final class Plugin {
 		// Ensure custom tables exist.
 		$this->maybeCreateTables();
 
-		// Activity logger — uses resolveForLogging() (proxy headers acceptable).
+		// Activity logger — failed-login records use security IPs because the
+		// rate limiter and notifier count those rows for enforcement.
 		$this->activityLogger = new ActivityLogger( $this->activityRepo, $this->ipResolver );
 		$this->activityLogger->register();
 
