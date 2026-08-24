@@ -29,13 +29,27 @@ jobs:
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
       # -----------------------------------------------------------------------
-      # 3. Build the distributable ZIP
+      # 3. Validate required files before packaging
+      # -----------------------------------------------------------------------
+      - name: Validate required files
+        run: |
+          for f in penalis-login.php uninstall.php readme.txt LICENSE.txt; do
+            [ -f "$f" ] || { echo "Missing required file: $f"; exit 1; }
+          done
+          [ -d "src" ]    || { echo "Missing required directory: src"; exit 1; }
+          [ -d "assets" ] || { echo "Missing required directory: assets"; exit 1; }
+          echo "All required files present."
+
+      # -----------------------------------------------------------------------
+      # 4. Build the distributable ZIP
       #    Only production files are included — development/repo files excluded.
       # -----------------------------------------------------------------------
       - name: Build ZIP
+        id: zip
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
         run: |
           PLUGIN_SLUG="penalis-login"
-          VERSION="${{ steps.version.outputs.VERSION }}"
           ZIP_NAME="${PLUGIN_SLUG}-${VERSION}.zip"
 
           # Create a clean temp directory with the plugin slug as the folder name.
@@ -58,14 +72,15 @@ jobs:
           # Move ZIP back to workspace so the upload step can find it
           mv "$ZIP_NAME" "$GITHUB_WORKSPACE/"
 
-          echo "ZIP_NAME=$ZIP_NAME" >> "$GITHUB_ENV"
+          echo "ZIP_NAME=$ZIP_NAME" >> "$GITHUB_OUTPUT"
 
       # -----------------------------------------------------------------------
-      # 4. Create a GitHub Release and attach the ZIP as a release asset
+      # 5. Create a GitHub Release and attach the ZIP as a release asset
       # -----------------------------------------------------------------------
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          generate_release_notes: true
           name: "v${{ steps.version.outputs.VERSION }}"
           tag_name: ${{ github.ref_name }}
           body: |
@@ -73,6 +88,6 @@ jobs:
 
             Download the ZIP below and upload it via **WordPress Admin → Plugins → Add New → Upload Plugin**.
             
-          files: ${{ env.ZIP_NAME }}
+          files: ./${{ steps.zip.outputs.ZIP_NAME }}
           draft: false
           prerelease: false
