@@ -63,6 +63,8 @@ final class SecurityHandler {
 		add_action( 'init', [ $this, 'blockWpLogin' ], 1 );
 		add_action( 'init', [ $this, 'blockWpAdminForGuests' ], 1 );
 		add_action( 'template_redirect', [ $this, 'blockCoreLoginShortcut' ], 0 );
+		add_filter( 'authenticate', [ $this, 'restrictWpLoginToStaff' ], 99, 3 );
+		add_filter( 'login_redirect', [ $this, 'redirectNonStaffToDashboard' ], 10, 3 );
 	}
 
 	// -------------------------------------------------------------------------
@@ -141,8 +143,14 @@ final class SecurityHandler {
 			return;
 		}
 
-		// Already logged in — let WordPress handle it normally.
+		// Already logged in: allow staff (administrators and editors) through,
+		// but redirect non-staff (writers, contributors, subscribers) to /dashboard/.
 		if ( is_user_logged_in() ) {
+			if ( ! $this->helpers->isLoggedInStaff() ) {
+				wp_safe_redirect( home_url( '/dashboard/' ) );
+				exit;
+			}
+
 			return;
 		}
 
@@ -384,5 +392,57 @@ final class SecurityHandler {
 		nocache_headers();
 		wp_safe_redirect( home_url( '/' ), 302 );
 		exit;
+	}
+
+	/**
+	 * Blocks non-staff users from authenticating via wp-login.php or the custom login slug.
+	 *
+	 * Writers, contributors, and subscribers have their own self-service dashboard
+	 * at /dashboard/ and must not log in through the WordPress admin login screen.
+	 *
+	 * @param  \WP_User|\WP_Error|null $user     Current authentication result.
+	 * @param  string                  $username Submitted username.
+	 * @param  string                  $password Submitted password.
+	 * @return \WP_User|\WP_Error|null
+	 */
+	public function restrictWpLoginToStaff(
+		\WP_User|\WP_Error|null $user,
+		string $username,
+		string $password
+	): \WP_User|\WP_Error|null {
+		if ( ! $user instanceof \WP_User ) {
+			return $user;
+		}
+
+		// Only restrict authentications targeting wp-login.php or custom login slug.
+		if ( ! $this->helpers->isWpLoginRequest() && ! $this->helpers->isCustomLoginSlugRequest() ) {
+			return $user;
+		}
+
+		// Staff (administrators and editors) are allowed.
+		if ( $user->has_cap( 'edit_others_posts' ) ) {
+			return $user;
+		}
+
+		return new \WP_Error(
+			'penalis_staff_only_login',
+			__( 'Halaman login ini khusus untuk tim pengelola. Silakan login melalui dashboard.', 'penalis-login' )
+		);
+	}
+
+	/**
+	 * Redirects non-staff users to /dashboard/ after login if they somehow reach login redirect.
+	 *
+	 * @param  string                  $redirect_to           Redirect URL.
+	 * @param  string                  $requested_redirect_to Requested URL.
+	 * @param  \WP_User|\WP_Error|null $user                  User object.
+	 * @return string
+	 */
+	public function redirectNonStaffToDashboard( string $redirect_to, string $requested_redirect_to, mixed $user ): string {
+		if ( $user instanceof \WP_User && ! $user->has_cap( 'edit_others_posts' ) ) {
+			return home_url( '/dashboard/' );
+		}
+
+		return $redirect_to;
 	}
 }

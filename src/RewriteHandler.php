@@ -132,6 +132,13 @@ final class RewriteHandler {
 			return;
 		}
 
+		// Non-staff logged in users (writers, contributors, subscribers)
+		// visiting the custom login slug should go directly to the dashboard.
+		if ( is_user_logged_in() && ! $this->helpers->isLoggedInStaff() ) {
+			wp_safe_redirect( home_url( '/dashboard/' ) );
+			exit;
+		}
+
 		// Prevent WordPress from serving a 404 for this virtual URL.
 		global $wp_query;
 		$wp_query->is_404 = false;

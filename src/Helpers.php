@@ -494,4 +494,14 @@ final class Helpers {
 	public function isLoggedInAdmin(): bool {
 		return is_user_logged_in() && current_user_can( 'manage_options' );
 	}
+
+	/**
+	 * Returns whether the current visitor is a logged-in staff member
+	 * (administrator or editor) permitted to access wp-admin.
+	 *
+	 * @return bool
+	 */
+	public function isLoggedInStaff(): bool {
+		return is_user_logged_in() && current_user_can( 'edit_others_posts' );
+	}
 }
