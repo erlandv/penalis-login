@@ -4,7 +4,7 @@ Tags: login, security, custom login url, hide login, brute force
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 2.3.1
+Stable tag: 2.4.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -69,6 +69,13 @@ Not by default. The plugin only reads `REMOTE_ADDR` (which cannot be spoofed) un
 Yes. Two custom tables are created on activation: one for the login activity log and one for IP rules. They are removed when the plugin is deleted if the "Delete Plugin Data" setting is enabled.
 
 == Changelog ==
+
+= 2.4.0 =
+* Security: Restrict wp-admin access to staff (administrators and editors); automatically redirect non-staff users (writers, contributors, subscribers) to /dashboard/.
+* Security: Restrict wp-login.php and custom login slug authentication to staff, returning an explicit message directing non-staff users to log in via the dashboard.
+* Security: Prevent custom login rewrite handler from hijacking non-login GET requests containing penalis_login query arguments.
+* Refactor: Standardize custom login slug detection across Helpers, RewriteHandler, LoginAttemptLimiter, and IpAccessControl.
+* CI: Add file validation and improve ZIP release workflow.
 
 = 2.3.1 =
 * Fix: Use security IP resolution for failed login events so rate limiter and notifications count tamper-resistant client IPs.
