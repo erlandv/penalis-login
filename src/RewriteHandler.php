@@ -128,7 +128,7 @@ final class RewriteHandler {
 	 * @return void
 	 */
 	public function handleLoginRequest(): void {
-		if ( ! get_query_var( self::QUERY_VAR ) ) {
+		if ( ! get_query_var( self::QUERY_VAR ) || ! $this->helpers->isCustomLoginSlugRequest() ) {
 			return;
 		}
 

@@ -149,10 +149,7 @@ final class IpAccessControl {
 			return true;
 		}
 
-		$path          = trim( $this->helpers->getCurrentPathRelativeToHome(), '/' );
-		$first_segment = explode( '/', $path, 2 )[0];
-
-		return $first_segment === $this->helpers->getLoginSlug();
+		return $this->helpers->isCustomLoginSlugRequest();
 	}
 
 	// -------------------------------------------------------------------------

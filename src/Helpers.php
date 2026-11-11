@@ -445,6 +445,20 @@ final class Helpers {
 	}
 
 	/**
+	 * Returns whether the current request path matches the custom login slug.
+	 *
+	 * Matches the first path segment relative to home_url().
+	 *
+	 * @return bool
+	 */
+	public function isCustomLoginSlugRequest(): bool {
+		$path          = trim( $this->getCurrentPathRelativeToHome(), '/' );
+		$first_segment = explode( '/', $path, 2 )[0];
+
+		return '' !== $first_segment && $first_segment === $this->getLoginSlug();
+	}
+
+	/**
 	 * Determines whether the current request is for the native wp-login.php.
 	 *
 	 * Checks both the PHP_SELF server variable and the parsed request URI to

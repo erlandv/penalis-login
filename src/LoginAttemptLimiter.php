@@ -133,13 +133,7 @@ final class LoginAttemptLimiter {
 			return true;
 		}
 
-		// Custom slug — match the first path segment relative to home_url().
-		$path = trim( $this->helpers->getCurrentPathRelativeToHome(), '/' );
-
-		// Take only the first segment (e.g. "login" from "login/foo").
-		$first_segment = explode( '/', $path, 2 )[0];
-
-		return $first_segment === $this->helpers->getLoginSlug();
+		return $this->helpers->isCustomLoginSlugRequest();
 	}
 
 	/**
