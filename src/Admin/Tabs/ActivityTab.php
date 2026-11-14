@@ -150,30 +150,41 @@ final class ActivityTab {
 			</table>
 
 			<?php if ( $total_pages > 1 ) : ?>
-				<div class="penalis-pagination tablenav">
+				<div class="penalis-pagination tablenav bottom">
 					<div class="tablenav-pages">
-						<?php
-						$base_url = add_query_arg(
-							[
-								'page' => 'penalis-login-settings',
-								'tab'  => 'activity',
-							],
-							admin_url( 'options-general.php' )
-						);
-
-						echo wp_kses_post(
-							paginate_links(
+						<span class="displaying-num">
+							<?php
+							printf(
+								/* translators: %s: total number of records */
+								esc_html( _n( '%s item', '%s items', $total, 'penalis-login' ) ),
+								esc_html( number_format_i18n( $total ) )
+							);
+							?>
+						</span>
+						<span class="pagination-links">
+							<?php
+							$base_url = add_query_arg(
 								[
-									'base'      => $base_url . '%_%',
-									'format'    => '&paged=%#%',
-									'current'   => $current_page,
-									'total'     => $total_pages,
-									'prev_text' => '&laquo;',
-									'next_text' => '&raquo;',
-								]
-							)
-						);
-						?>
+									'page' => 'penalis-login-settings',
+									'tab'  => 'activity',
+								],
+								admin_url( 'options-general.php' )
+							);
+
+							echo wp_kses_post(
+								paginate_links(
+									[
+										'base'      => $base_url . '%_%',
+										'format'    => '&paged=%#%',
+										'current'   => $current_page,
+										'total'     => $total_pages,
+										'prev_text' => '&lsaquo;',
+										'next_text' => '&rsaquo;',
+									]
+								)
+							);
+							?>
+						</span>
 					</div>
 				</div>
 			<?php endif; ?>

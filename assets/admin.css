@@ -676,11 +676,79 @@
 
 .penalis-pagination {
 	margin-top: 12px;
+	height: auto;
+	padding: 0;
 }
 
 .penalis-pagination .tablenav-pages {
 	float: none;
-	text-align: left;
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+	flex-wrap: wrap;
+	margin: 0;
+}
+
+.penalis-pagination .displaying-num {
+	color: #646970;
+	font-size: 13px;
+	margin-right: 4px;
+}
+
+.penalis-pagination .pagination-links {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	flex-wrap: wrap;
+}
+
+.penalis-pagination .page-numbers {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 30px;
+	height: 30px;
+	padding: 0 8px;
+	box-sizing: border-box;
+	border: 1px solid #c3c4c7;
+	border-radius: 3px;
+	background: #f6f7f7;
+	color: #2271b1;
+	font-size: 13px;
+	line-height: 1;
+	text-decoration: none;
+	transition: background-color 0.1s ease, border-color 0.1s ease, color 0.1s ease;
+}
+
+.penalis-pagination a.page-numbers:hover {
+	background: #f0f0f1;
+	border-color: #0a4b78;
+	color: #0a4b78;
+}
+
+.penalis-pagination a.page-numbers:focus {
+	border-color: #2271b1;
+	box-shadow: 0 0 0 1px #2271b1;
+	color: #0a4b78;
+	outline: 2px solid transparent;
+}
+
+.penalis-pagination .page-numbers.current {
+	background: #2271b1;
+	border-color: #2271b1;
+	color: #fff;
+	font-weight: 600;
+	cursor: default;
+}
+
+.penalis-pagination .page-numbers.dots {
+	min-width: auto;
+	padding: 0 4px;
+	border-color: transparent;
+	background: transparent;
+	color: #646970;
+	cursor: default;
 }
 
 /* -------------------------------------------------------------------------
