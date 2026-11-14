@@ -54,14 +54,16 @@ final class SecurityHandler {
 	/**
 	 * Registers all WordPress hooks managed by this class.
 	 *
-	 * We hook into 'init' at priority 1 (very early) so we can intercept
-	 * wp-login.php requests before any other plugin processes them.
+	 * We hook into 'wp_loaded' at priority 999 so theme options (e.g. Redux)
+	 * and pluggable plugin functions (e.g. Post Views Counter) finish loading
+	 * before a 404 template is rendered, while still intercepting wp-login.php
+	 * inside wp-load.php before login processing begins.
 	 *
 	 * @return void
 	 */
 	public function register(): void {
-		add_action( 'init', [ $this, 'blockWpLogin' ], 1 );
-		add_action( 'init', [ $this, 'blockWpAdminForGuests' ], 1 );
+		add_action( 'wp_loaded', [ $this, 'blockWpLogin' ], 999 );
+		add_action( 'wp_loaded', [ $this, 'blockWpAdminForGuests' ], 999 );
 		add_action( 'template_redirect', [ $this, 'blockCoreLoginShortcut' ], 0 );
 		add_filter( 'authenticate', [ $this, 'restrictWpLoginToStaff' ], 99, 3 );
 		add_filter( 'login_redirect', [ $this, 'redirectNonStaffToDashboard' ], 10, 3 );
@@ -74,8 +76,8 @@ final class SecurityHandler {
 	/**
 	 * Blocks direct access to wp-login.php.
 	 *
-	 * Runs on 'init' at priority 1. Exits early for all requests that are
-	 * not targeting wp-login.php so there is zero overhead on normal pages.
+	 * Runs on 'wp_loaded' at priority 999. Exits early for all requests that
+	 * are not targeting wp-login.php so there is zero overhead on normal pages.
 	 *
 	 * @return void
 	 */
