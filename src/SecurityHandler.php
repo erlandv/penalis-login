@@ -352,6 +352,12 @@ final class SecurityHandler {
 		status_header( 404 );
 		nocache_headers();
 
+		// When serving a theme 404 from inside /wp-admin/ (WP_ADMIN === true),
+		// frontend builders such as Elementor skip registering frontend styles
+		// and enqueue admin styles instead. Re-attach frontend style hooks so
+		// the /wp-admin/ 404 renders identically to /wp-login.php and regular 404s.
+		$this->prepareAdminContextForFrontend404();
+
 		// Attempt to load the theme's 404 template.
 		$template = get_404_template();
 
@@ -367,6 +373,56 @@ final class SecurityHandler {
 			'',
 			[ 'response' => 404 ]
 		);
+	}
+
+	/**
+	 * Restores frontend stylesheet/script registration skipped under WP_ADMIN
+	 * when rendering the theme's 404 template for guest `/wp-admin/` requests.
+	 *
+	 * @return void
+	 */
+	private function prepareAdminContextForFrontend404(): void {
+		if ( ! is_admin() ) {
+			return;
+		}
+
+		if (
+			class_exists( '\Elementor\Plugin' )
+			&& isset( \Elementor\Plugin::$instance )
+			&& isset( \Elementor\Plugin::$instance->frontend )
+			&& is_object( \Elementor\Plugin::$instance->frontend )
+		) {
+			$frontend = \Elementor\Plugin::$instance->frontend;
+
+			if ( method_exists( $frontend, 'register_scripts' ) ) {
+				add_action( 'wp_enqueue_scripts', [ $frontend, 'register_scripts' ], 5 );
+			}
+
+			if ( method_exists( $frontend, 'register_styles' ) ) {
+				add_action( 'wp_enqueue_scripts', [ $frontend, 'register_styles' ], 5 );
+			}
+
+			if ( method_exists( $frontend, 'init' ) ) {
+				$frontend->init();
+			}
+
+			if ( method_exists( $frontend, 'enqueue_styles' ) ) {
+				add_action( 'wp_enqueue_scripts', [ $frontend, 'enqueue_styles' ], 10 );
+			}
+		}
+
+		$cleanup_styles = static function (): void {
+			if ( wp_style_is( 'wp-block-library', 'registered' ) ) {
+				wp_enqueue_style( 'wp-block-library' );
+			}
+
+			foreach ( [ 'elementor-common', 'e-theme-ui-light', 'e-theme-ui-dark', 'elementor-icons', 'elementor-wp-admin-bar' ] as $admin_handle ) {
+				wp_dequeue_style( $admin_handle );
+			}
+		};
+
+		add_action( 'wp_enqueue_scripts', $cleanup_styles, 999 );
+		add_action( 'wp_print_styles', $cleanup_styles, 1 );
 	}
 
 	/**

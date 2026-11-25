@@ -4,7 +4,7 @@ Tags: login, security, custom login url, hide login, brute force
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 2.4.1
+Stable tag: 2.4.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -69,6 +69,9 @@ Not by default. The plugin only reads `REMOTE_ADDR` (which cannot be spoofed) un
 Yes. Two custom tables are created on activation: one for the login activity log and one for IP rules. They are removed when the plugin is deleted if the "Delete Plugin Data" setting is enabled.
 
 == Changelog ==
+
+= 2.4.2 =
+* Fix: Restore Elementor frontend stylesheets and WordPress block library styles (and dequeue admin-only styles) when rendering the theme's 404 template for guest `/wp-admin/` requests so the header layout matches `/wp-login.php` and regular frontend 404 pages.
 
 = 2.4.1 =
 * Fix: Move `wp-login.php` and guest `/wp-admin/` blocking hooks from `init` (priority 1) to `wp_loaded` (priority 999) so theme options (e.g. Redux) and pluggable plugin functions finish loading before the 404 template is rendered.
